@@ -19,7 +19,7 @@ def colorize(text: Any, color_code: str):
 def print_legend():
     print(f"""
         [ LEGEND ]
-        {colorize("[+]", LIME)} : Host is UP (HTTP/HTTPS 200)
+        {colorize("[*]", LIME)} : Host is UP (HTTP/HTTPS 200)
         {colorize("[!]", YELLOW)} : Access Forbidden (403)
         {colorize("[?]", CYAN)} : Wildcard Subdomain Detected
         {colorize("[-]", WHITE)} : Host is Down / Other Status
@@ -30,7 +30,7 @@ def sign(http_status, https_status, is_wildcard) -> str:
     if is_wildcard:
         return colorize("[?]", CYAN if config.color else WHITE)
     elif http_status == 200 or https_status == 200:
-        return colorize("[+]", LIME if config.color else WHITE)
+        return colorize("[*]", LIME if config.color else WHITE)
     elif http_status == 403 or https_status == 403:
         return colorize("[!]", YELLOW if config.color else WHITE)
     else:

@@ -152,7 +152,7 @@ def check_subdomain(domain: str):
 
     if not config.quiet:
         print(print_legend())
-        print(f"[*] Found {len(subdomain)} potential hosts, starting validation\n")
+        print(f"[+] Found {len(subdomain)} potential hosts, starting validation\n")
 
     wildcard_baseline = check_wildcard(get_domain_root(subdomain[0]))
     try:
