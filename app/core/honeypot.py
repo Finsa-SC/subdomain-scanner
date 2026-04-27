@@ -1,6 +1,21 @@
-from models import HONEYPOT_TITLE, HONEYPOT_NAME, HONEYPOT_HASHES, HONEYPOT_SERVERS, OBSOLETE_VERSIONS, \
-    SUSPICIOUS_HEADER_ORDERS
-from utils import is_cloudflare
+from models import (HONEYPOT_TITLE, HONEYPOT_NAME, HONEYPOT_HASHES, HONEYPOT_SERVERS, OBSOLETE_VERSIONS,
+    SUSPICIOUS_HEADER_ORDERS, SIGNAL_TIER, SIGNAL_WEIGHTS, CONFIDENCE_LABELS)
+from utils.save_file import is_cloudflare
+
+import math
+
+
+def noisy_or(probabilities: list[float]) -> float:
+    if not probabilities:
+        return 0.0
+    complement = math.prod(1.0 - prob for prob in probabilities)
+    return 1.0 - complement
+
+def get_confidence_lever(score: float) -> str:
+    for treshold, label in CONFIDENCE_LABELS:
+        if score >= treshold:
+            return label
+    return "Unlikely"
 
 class HoneypotAnalyzer:
     def __init__(self, data, config):
@@ -8,46 +23,133 @@ class HoneypotAnalyzer:
         self.http = data["http"]
         self.https = data["https"]
         self.config = config
-        self.chance = 0
-        self.findings = []
+        self.signal: dict[str, float] = {}
+        self.findings: list[str] = []
 
-    def check_static(self):
-        sub = self.data["subdomain"].lower()
-        h_title = self.http["title"].lower()
-        s_title = self.https["title"].lower()
-        h_server = self.http["server"].lower()
-        s_server = self.https["server"].lower()
+    def _add_signal(self, key: str, note: str) -> None:
+        scoring = SIGNAL_WEIGHTS[key]
+        if key not in self.signal or self.signal[key] < scoring:
+            self.signal[key] = scoring
+        if note not in self.findings:
+            self.findings.append(note)
 
-        for pattern, weight in HONEYPOT_NAME.items():
-            if pattern in sub:
-                self.chance += weight
-                self.findings.append("Unusual subdomain")
+    def _is_cloudflare_host(self):
+        h_server = self.http.get("server", "").lower()
+        s_server = self.https.get("server", "").lower()
+        return "cloudflare" in h_server or "cloudflare" in s_server
 
-        for pattern, weight in HONEYPOT_TITLE:
-            if pattern in [h_title, s_title]:
-                self.chance += weight
-                self.findings.append("Clickbait title")
+    def _is_host_responsive(self):
+        h_status = self.http["status"]
+        s_status = self.https["status"]
+        return h_status in [200, 403] or s_status in [200, 403]
 
-        for pattern, weight in HONEYPOT_SERVERS.items():
-            if h_server in pattern or s_server in pattern:
-                self.chance += weight
-                self.findings.append("Suspicious server signature")
+    def _compute_score(self) -> float:
+        if not self.signal:
+            return 0.0
 
-        if any(v in h_server for v in OBSOLETE_VERSIONS) or any(v in s_server for v in OBSOLETE_VERSIONS):
-            self.chance += 25
-            self.findings.append(f"Server is leaking an obsolete/vulnerable version: '{h_server or s_server}'")
+        tiers: dict[str, list[float]] = {"critical": [], "strong": [], "weak": []}
+        for key, score in self.signal.items():
+            tiers[SIGNAL_TIER[key]].append(score)
 
-        if s_server != h_server and "Unknown" not in [h_server, s_server]:
-            self.chance += 15
-            self.findings.append("Different server")
+        tiers_scores = {t: noisy_or(ps) for t, ps in tiers.items() if ps}
 
-        if is_cloudflare(self.data["ip_address"]) and "cloudflare" not in [h_server, s_server]:
-            self.chance += 30
-            self.findings.append("Cloudflare detected but server header is leaking backend info (High Anomaly)")
+        final = noisy_or(list(tiers_scores.values()))
 
+        n_critical = len(tiers["critical"])
+        if n_critical >= 2:
+            final = max(final, 0.88)
+        elif n_critical == 1:
+            final = max(final, 0.70)
 
+        if not self._is_host_responsive():
+            final *= 0.3
 
-    def check_structural(self):
+        return round(min(final, 1.0), 4)
+
+    def check_server(self):
+        h_server = self.http.get("server", "").lower() or ""
+        s_server = self.https.get("server", "").lower() or ""
+
+        for sig in HONEYPOT_SERVERS:
+            if sig in h_server or sig in s_server:
+                self._add_signal("server_sig_match",
+                                 f"Server signature matches known honeypot software: '{sig}'")
+                break
+
+        for ver in OBSOLETE_VERSIONS:
+            if ver in h_server or ver in s_server:
+                self._add_signal("obsolete_version",
+                                 f"Deliberately exposed obsolete version: '{h_server or s_server}'")
+                break
+
+        ip_addr = self.data.get("ip_address")
+        if ip_addr and ip_addr != "No IP":
+            try:
+                if is_cloudflare(self.data.get("ip_address", "")) and not self._is_cloudflare_host():
+                    self._add_signal("cloudflare_leak",
+                                     "Cloudflare IP but real backend exposed in server header")
+            except:
+                pass
+
+    def check_response(self):
+        h_hash = self.http.get("body_hash")
+        s_hash = self.https.get("body_hash")
+
+        for b_hash in (h_hash, s_hash):
+            if b_hash and b_hash in HONEYPOT_HASHES:
+                self._add_signal("hash_match",
+                                 f"Body hash matches known honeypot: '{HONEYPOT_HASHES[b_hash]}'")
+                break
+        h_keys = [k.lower() for k in self.http.get("header_keys", [])]
+        s_keys = [k.lower() for k in self.https.get("header_keys", [])]
+
+        for keys in (h_keys, s_keys):
+            if not keys: continue
+            for trap_order in SUSPICIOUS_HEADER_ORDERS:
+                if all(item in keys for item in trap_order):
+                    indices = [keys.index(item) for item in trap_order]
+                    if indices == sorted(indices):
+                        self._add_signal("header_order",
+                                         f"Header order matches honeypot framework fingerprint: "
+                                         f"{trap_order}")
+                        break
+
+    def check_subdomain(self):
+        if not self._is_host_responsive():
+            return
+
+        sub = self.data.get("subdomain", "").lower()
+        for name in HONEYPOT_NAME:
+            if name in sub:
+                self._add_signal("subdomain_name",
+                                 f"High-value bait subdomain: '{name}'")
+                break
+
+    def check_behavioral(self):
+        if not self._is_host_responsive():
+            return
+
+        h_hash = self.http.get("body_hash")
+        s_hash = self.https.get("body_hash")
+        h_size = self.http.get("size", 0)
+        s_size = self.https.get("size", 0)
+
+        h_200 = self.http.get("status") == 200
+        s_200 = self.https.get("status") == 200
+        if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_cloudflare_host():
+            self._add_signal("identical_body_both_proto",
+                             "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
+
+        h_title = self.http.get("title", "").strip()
+        s_title = self.https.get("title", "").strip()
+        if h_200 and not h_title:
+            self._add_signal("missing_title",
+                             "HTTP 200 but no page title — possible bare honeypot response")
+            if s_200 and not s_title:
+                self._add_signal("missing_title",
+                                 "HTTPS 200 but no page title — possible bare honeypot response")
+
+    def check_structural(self) -> None:
         h_hash = self.http.get("body_hash")
         s_hash = self.https.get("body_hash")
         h_keys = [k.lower() for k in self.http.get("header_keys", [])]
@@ -55,32 +157,32 @@ class HoneypotAnalyzer:
 
         for b_hash in [h_hash, s_hash]:
             if b_hash in HONEYPOT_HASHES:
-                self.chance += 50
-                self.findings.append(f"Content hash matches known honeypot: {HONEYPOT_HASHES[b_hash]}")
+                self._add_signal("hash_match",
+                f"Content hash matches known honeypot: {HONEYPOT_HASHES[b_hash]}")
                 break
 
         for keys in [h_keys, s_keys]:
-            if not keys: return
+            if not keys: continue
             for trap_order in SUSPICIOUS_HEADER_ORDERS:
                 if all(item in keys for item in trap_order):
                     indices = [keys.index(item) for item in trap_order]
                     if indices == sorted(indices):
-                        self.chance += 20
-                        self.findings.append("Suspicious HTTP header ordering detected")
+                        self._add_signal("header_order",
+                        "Suspicious HTTP header ordering detected")
                         break
 
         h_size = self.http.get("size", 0)
         s_size = self.https.get("size", 0)
         if h_size == s_size and h_size > 0:
-            self.chance += 10
-            self.findings.append("Identical response size on both protocols")
-
-
-    def check_behavioral(self):
-        ...
+            self._add_signal("identical_size",
+            "Identical response size on both protocols")
 
     def run_all(self):
-        self.check_static()
-        self.check_structural()
+        self.check_server()
+        self.check_response()
+        self.check_subdomain()
+        self.check_behavioral()
 
-        return min(self.chance, 100), self.findings
+        score = self._compute_score()
+        label = get_confidence_lever(score)
+        return score, label, self.findings

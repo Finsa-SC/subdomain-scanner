@@ -1,6 +1,4 @@
 import html
-from Tools.scripts.generate_opcode_h import header
-
 import requests
 import urllib3
 import re
@@ -8,7 +6,7 @@ import hashlib
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def http_request(proto ,sub, time_out):
+def send_request(proto ,sub, time_out):
     try:
         sub_url = f"{proto}://{sub}"
         res = requests.get(url=sub_url, timeout=time_out, allow_redirects=False, verify=False)
@@ -29,9 +27,9 @@ def http_request(proto ,sub, time_out):
         }
         return request_dict
     except requests.exceptions.SSLError:
-        return {"http_status": "SSL_ERR"}
+        return {"status": "SSL_ERR"}
     except requests.exceptions.RequestException:
-        return {"http_status": "CONN_ERR"}
+        return {"status": "CONN_ERR"}
 
 def get_html_title(res):
     res.encoding = res.apparent_encoding

@@ -1,10 +1,8 @@
-from ipaddress import ip_address
 from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlparse
 from utils import is_cloudflare
-from models import scan_config
-
+from models import scan_config, TITLE_IGNORE
 
 # ANSI Colors (Soft/Standard)
 RESET = "\033[0m"
@@ -62,14 +60,14 @@ def show_verbose(http_status, https_status, show_redir=False, http_redir=None, h
         return f"[ {', '.join(status)} ]"
     return ""
 
-def show_output(data: Mapping[str, Any]):
+def show_output(data: Mapping[str, Any], honeypotAnalyze):
     config = scan_config.current
 
     http = data.get("http", {})
     https = data.get("https", {})
 
     ##Value
-    # ip_addresss = data.get("ip_address")
+    ip_address = data.get("ip_address")
     is_wildcard = data.get("wildcard")
     sub = data.get("subdomain")
     h_status = http.get("status")
@@ -92,6 +90,7 @@ def show_output(data: Mapping[str, Any]):
     show_title = config.show_title
     is_verbose = config.verbose
     show_tech = config.show_tech
+    show_honeypot = config.honeypot
     show_available = config.available
 
     # Set Color
@@ -124,6 +123,9 @@ def show_output(data: Mapping[str, Any]):
     if show_tech:
         tech = get_tech(h_tech, s_tech)
         output_buffer.extend([colorize(t, color) for t in tech])
+    if show_honeypot:
+        honeypot = get_honeypot(data, config, honeypotAnalyze)
+        output_buffer.extend([colorize(t, color) for t in honeypot])
 
     if server is not None:
         if (200 in [h_status, s_status]) or not show_available:
@@ -144,13 +146,12 @@ def show_quiet(is_okay: int, sub: str = None, ip: str= None, show_ip: bool = Fal
             print(sub)
 
 def get_title(http_title: str, https_title: str):
-    ignore_list = ["301 moved permanently", "302 found", "object moved", "welcome to nginx!", "welcome to openresty", "403 forbidden", "404 not found"]
-
     def is_valid(title: str):
-        if not title and title.strip() in ["-", ""]:
+        if not title or not isinstance(title, str):
             return False
-        if title.lower() in ignore_list or title.lower() in ignore_list:
-            return False
+        for ignore_title in TITLE_IGNORE:
+            if ignore_title in title.lower().strip():
+                return False
         return True
 
     h = http_title if is_valid(http_title) else None
@@ -211,3 +212,11 @@ def print_banner():
             print(f.read())
     except FileNotFoundError:
         print("Banner file not found!!")
+
+def get_honeypot(data, config, honeypotAnalyze):
+    honeypot = honeypotAnalyze(data, config)
+    score, label, findings = honeypot.run_all()
+    score_pct = f"{score * 100:.1f}%"
+    finding_pct = ", ".join(findings) if findings else "No specific patterns"
+    return [f"        |_Honeypot: {score_pct} [{label}]",
+            f"        |_[ Findings: {finding_pct} ]"]
