@@ -1,45 +1,33 @@
 import html
+from Tools.scripts.generate_opcode_h import header
+
 import requests
 import urllib3
 import re
+import hashlib
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def http_request(sub, time_out):
+def http_request(web ,sub, time_out):
     try:
-        sub_url = f"http://{sub}"
+        sub_url = f"{web}://{sub}"
         res = requests.get(url=sub_url, timeout=time_out, allow_redirects=False, verify=False)
-        http_dict = {
-            "http_title": get_html_title(res),
-            "http_status": res.status_code,
-            "http_server": res.headers.get('Server', 'Unknown'),
-            "location": res.headers.get("Location", "-"),
-            "http_latency": int(res.elapsed.total_seconds() * 1000),
-            "length": len(res.content),
-            "timestamp": res.headers.get('Date'),
-            "header": res.headers
-        }
-        return http_dict
-    except requests.exceptions.SSLError:
-        return {"http_status": "SSL_ERR"}
-    except requests.exceptions.RequestException:
-        return {"http_status": "CONN_ERR"}
 
-def https_request(sub, time_out):
-    try:
-        sub_url = f"https://{sub}"
-        res = requests.get(url=sub_url, timeout=time_out, allow_redirects=False, verify=False)
-        https_dict = {
-            "https_title": get_html_title(res),
-            "https_status": res.status_code,
-            "https_server": res.headers.get('Server', 'Unknown'),
+        body_hash = hashlib.md5(res.content).hexdigest() if res.content else "d41d8cd98f00b204e9800998ecf8427e"
+
+        request_dict = {
+            "title": get_html_title(res),
+            "status": res.status_code,
+            "server": res.headers.get('Server', 'Unknown'),
             "location": res.headers.get("Location", "-"),
-            "https_latency": int(res.elapsed.total_seconds() * 1000),
+            "latency": int(res.elapsed.total_seconds() * 1000),
             "length": len(res.content),
             "timestamp": res.headers.get('Date'),
-            "header": res.headers
+            "header": res.headers,
+            "body_hash": body_hash,
+            "header_keys": list(res.headers.keys())
         }
-        return https_dict
+        return request_dict
     except requests.exceptions.SSLError:
         return {"http_status": "SSL_ERR"}
     except requests.exceptions.RequestException:

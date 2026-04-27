@@ -23,29 +23,35 @@ def validate_subdomain(sub, wildcard_baseline):
         except socket.gaierror:
             ip_address = "No IP"
 
-        dict_http = http_request(sub, config.timeout)
-        dict_https = https_request(sub, config.timeout)
+        dict_http = http_request("http", sub, config.timeout)
+        dict_https = https_request("https", sub, config.timeout)
 
         h = dict_http if dict_http else {}
         s = dict_https if dict_https else {}
 
         timestamp = h.get("timestamp") or s.get("timestamp")
 
-        http_status = h.get("http_status")
+        http_status = h.get("status")
         http_server = h.get("http_server", "Unknown")
-        http_latency = h.get("http_latency")
+        http_latency = h.get("latency")
         http_content = h.get("length", b"")
         http_redir = h.get("location", "-")
-        http_title = h.get("http_title", "")
+        http_title = h.get("title", "")
         http_header = h.get("header") if h.get("header") is not None else {}
+        http_hash = h.get("body_hash")
+        http_keys = h.get("header")
+        http_hash = h.get("body_hash")
 
         https_status = s.get("https_status")
-        https_server = s.get("https_server", "Unknown")
-        https_latency = s.get("https_latency")
+        https_server = s.get("server", "Unknown")
+        https_latency = s.get("latency")
         https_content = s.get("length", b"")
         https_redir = s.get("location", "-")
-        https_title = s.get("https_title", "")
+        https_title = s.get("title", "")
         https_header = s.get("header") if s.get("header") is not None else {}
+        https_hash = h.get("body_hash")
+        https_keys = h.get("header")
+        https_hash = h.get("body_hash")
 
 
         ##Validate Wildcard
@@ -86,8 +92,13 @@ def validate_subdomain(sub, wildcard_baseline):
             "http_tech": http_header,
             "https_tech": https_header,
             "show_tech": config.show_tech,
-            "is_wildcard": is_any_wildcard
+            "is_wildcard": is_any_wildcard,
+            "http_hash": http_hash,
+            "https_hash": https_hash,
+            "http_keys": http_keys,
+            "https_keys": https_keys
         }
+
         dict_info = {
             "timestamp": timestamp,
             "subdomain": sub,

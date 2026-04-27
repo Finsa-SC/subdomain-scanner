@@ -1,1 +1,2 @@
 from .scan_config import ScanConfig, current
+from .signatures import HONEYPOT_NAME, HONEYPOT_TITLE, HONEYPOT_HASHES, HONEYPOT_SIZE_RANGE, HONEYPOT_SERVERS, OBSOLETE_VERSIONS
