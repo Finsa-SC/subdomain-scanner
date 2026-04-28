@@ -32,7 +32,7 @@ def validate_subdomain(sub, wildcard_baseline):
         timestamp = h.get("timestamp") or s.get("timestamp")
 
         http_status = h.get("status")
-        http_server = h.get("http_server", "Unknown")
+        http_server = h.get("server", "Unknown")
         http_latency = h.get("latency")
         http_size = h.get("length", b"")
         http_redir = h.get("location", "-")
@@ -41,7 +41,7 @@ def validate_subdomain(sub, wildcard_baseline):
         http_keys = h.get("header") or []
         http_hash = h.get("body_hash")
 
-        https_status = s.get("https_status")
+        https_status = s.get("status")
         https_server = s.get("server", "Unknown")
         https_latency = s.get("latency")
         https_size = s.get("length", b"")
