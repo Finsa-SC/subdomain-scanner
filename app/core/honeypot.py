@@ -120,12 +120,13 @@ class HoneypotAnalyzer:
                                          "Suspicious HTTP header ordering detected")
                         break
 
-        h_title = self.http.get("title")
-        s_title = self.https.get("title")
+        h_title = (self.http.get("title") or "")
+        s_title = (self.https.get("title") or "")
         for title in HONEYPOT_TITLE:
             if title in h_title or title in s_title:
                 self._add_signal("clickbait_title",
                                  "Default server page title detected: '{title}'")
+                break
 
 
     def check_subdomain(self):

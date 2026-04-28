@@ -72,7 +72,6 @@ OBSOLETE_VERSIONS = ["apache/2.2", "php/5.", "iis/7.0", "iis/6.0"]
 SUSPICIOUS_HEADER_ORDERS = [
     ["server", "x-powered-by", "x-honeypot"],
     ["x-aspnet-version", "x-powered-by", "server", "x-honeypot"],
-    ["date", "server", "x-powered-by", "content-type"],
 ]
 CLOUDFLARE_IPS = [
     "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22",
@@ -102,6 +101,7 @@ SIGNAL_TIER = {
     "obsolete_version": "strong",
     "header_order":     "strong",
     "clickbait_title":  "strong",
+    "identical_body_both_proto": "strong",
     "subdomain_name":   "weak",
     "missing_title":    "weak",
 }
@@ -110,6 +110,7 @@ CONFIDENCE_LABELS = [
     (0.90, "Confirmed"),
     (0.75, "Likely"),
     (0.50, "Probable"),
+    (0.50, "identical_body_both_proto"),
     (0.25, "Possible"),
     (0.00, "Unlikely"),
 ]
