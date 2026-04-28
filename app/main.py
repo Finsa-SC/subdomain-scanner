@@ -18,159 +18,53 @@ DELAY = os.getenv("DELAY", 0.0)
 VERSION = "1.0.0"
 
 def main():
-    parser = argparse.ArgumentParser(description="Subdomain recon tool")
-
-    group = parser.add_mutually_exclusive_group(required=True)
-
-##Version
-    parser.add_argument(
-        "-V",
-        "--version",
-        action="version",
-        version=f"subf {VERSION}",
-        help="Print version of the tool"
+    parser = argparse.ArgumentParser(
+        description="Subdomain recon tool - FinSky IT Solutions",
+        epilog="[!] WARNING: Use with caution. Scanning honeypots will trigger logs on the target server."
     )
 
+    # 1. INPUT ARGUMENTS
+    input_group = parser.add_argument_group('INPUT ARGUMENTS')
+    me_group = input_group.add_mutually_exclusive_group(required=True)
+    me_group.add_argument("-d", "--domain", help="Search for single domain")
+    me_group.add_argument("-dL", "--domain-list", help="Validate multiple domain from file")
+    input_group.add_argument("-s", "--source", type=str, help="Select source from domain track record")
 
-##Input
-    group.add_argument(
-        "-d",
-        "--domain",
-        help="Search for single domain"
-    )
+    # 2. CONFIGURATION (Resource & Performance)
+    config_group = parser.add_argument_group('CONFIGURATION')
+    config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
+    config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 10)")
+    config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
+    config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
 
-    group.add_argument(
-        "-dL",
-        "--domain-list",
-        help="Validate multiple domain from file"
-    )
+    # 3. PROFILING & ANALYSIS
+    profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
+    profile_group.add_argument("-v", "--verbose", action="store_true", help="Show information more detail")
+    profile_group.add_argument("-t", "--title", action="store_true", help="Print page title")
+    profile_group.add_argument("-x", "--header-tech", action="store_true", help="Show subdomain tech from header")
+    profile_group.add_argument("-r", "--redirect", action="store_true", help="Show redirect information")
+    profile_group.add_argument("--honeypot", action="store_true", help="Enable honeypot fingerprinting (LOGGED!)")
+    profile_group.add_argument("-a", "--aggressive", action="store_true", help="Enable all informative flags (-v, -t, -x, etc.)")
 
-    parser.add_argument(
-        "-s",
-        "--source",
-        type=str,
-        help="Select source from domain tract record you want to use"
-    )
+    # 4. OUTPUT FILTERING
+    filter_group = parser.add_argument_group('OUTPUT FILTERING')
+    filter_group.add_argument("-A", "--available", action="store_true", help="Only show domain with 200 status code")
+    filter_group.add_argument("-w", "--no-wildcard", action="store_true", help="Skip if wildcard DNS detected")
+    filter_group.add_argument("-q", "--quiet", action="store_true", help="Show clean output (only 200 status)")
+    filter_group.add_argument("--ip", action="store_true", help="Show IP address instead of subdomain")
+    filter_group.add_argument("--color", action="store_true", help="Color output text")
 
-    parser.add_argument(
-        "--timeout",
-        type=float,
-        default=TIMEOUT,
-        help="Request timeout (default is 3 sec)"
-    )
+    # 5. EXPORT OPTIONS
+    export_group = parser.add_argument_group('EXPORT OPTIONS')
+    export_group.add_argument("-o", "--output", action="store_true", help="Save result as plain list")
+    export_group.add_argument("-oJ", "--output-json", action="store_true", help="Save result as JSON with detail")
 
-    parser.add_argument(
-        "--thread",
-        type=int,
-        default=THREAD,
-        help="Number of threads (default is 10)"
-    )
-
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=DELAY,
-        help="Delay of request"
-    )
-
-##Inputless
-    parser.add_argument(
-        "-A",
-        "--available",
-        action="store_true",
-        help="Only show domain with 200 status code"
-    )
-
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Show information more detail"
-    )
-
-    parser.add_argument(
-        "-r",
-        "--redirect",
-        action="store_true",
-        help="Show redirect information"
-    )
-
-    parser.add_argument(
-        "-w",
-        "--no-wildcard",
-        action="store_true",
-        help="Skip subdomain if wildcard dns detected in that's subdomain"
-    )
-
-    parser.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help="Show clean output in terminal only subdoamin with http/https 200 status code"
-    )
-
-    parser.add_argument(
-        "--ip",
-        action="store_true",
-        help="Show ip address instead subdomain clearly"
-    )
-
-    parser.add_argument(
-        "-t",
-        "--title",
-        action="store_true",
-        help="Print title of page below subdomain"
-    )
-
-    parser.add_argument(
-        "-x",
-        "--header-tech",
-        action="store_true",
-        help="Show subdomain tech from header"
-    )
-
-    parser.add_argument(
-        "-a",
-        "--aggressive",
-        action="store_true",
-        help="Enable all informative flags (-v, -T, -x, etc.)")
-
-    parser.add_argument(
-        "-all",
-        action="store_true",
-        help="Use all available resource"
-    )
-
-    parser.add_argument(
-        "--honeypot",
-        action="store_true",
-        help="Detect honeypot from subdomain"
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output",
-        action="store_true",
-        help="Save recon result as plain list ip"
-    )
-
-    parser.add_argument(
-        "-oJ",
-        "--output-json",
-        action="store_true",
-        help="Save recon result as json with detail information"
-    )
-
-    parser.add_argument(
-        "--color",
-        action="store_true",
-        help="Color output text"
-    )
+    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
 
     args = parser.parse_args()
 
     if args.aggressive:
-        args.verbose = args.title = args.header_tech = args.redirect = args.honeypot = True
+        args.verbose = args.title = args.header_tech = args.redirect = True
 
     config = ScanConfig(
         timeout=args.timeout,
