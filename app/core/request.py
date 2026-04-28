@@ -1,15 +1,21 @@
+from .stealth import StealthMode
+
 import html
 import requests
 import urllib3
+import logging
 import re
 import hashlib
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+stealth = StealthMode()
+
 def send_request(proto ,sub, time_out):
     try:
         sub_url = f"{proto}://{sub}"
-        res = requests.get(url=sub_url, timeout=time_out, allow_redirects=False, verify=False)
+        stealth_header = stealth.get_jumbled_header()
+        res = requests.get(url=sub_url, timeout=time_out, headers=stealth_header, allow_redirects=False, verify=False)
 
         body_hash = hashlib.md5(res.content).hexdigest() if res.content else "d41d8cd98f00b204e9800998ecf8427e"
 
