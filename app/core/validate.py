@@ -7,11 +7,17 @@ from models import scan_config
 ##Module Package
 import socket
 import requests
+import random
+import time
 
 stats = ReconStats()
 
 def validate_subdomain(sub, wildcard_baseline):
     config = scan_config.current
+
+    if config.delay > 0:
+        humane_sleep(config.delay)
+
     try:
         try:
             ip_address = socket.gethostbyname(sub)
@@ -106,3 +112,13 @@ def validate_subdomain(sub, wildcard_baseline):
     except Exception as e:
         print(f"Error: {sub} -> {e}")
         return False, "No IP", None
+
+def humane_sleep(base_delay: float):
+    config = scan_config.current
+
+    if config.delay > 0:
+        jitter = base_delay * 0.5
+        actual_delay = random.uniform(base_delay - jitter, base_delay + jitter)
+        time.sleep(actual_delay)
+    else:
+        time.sleep(random.uniform(0.1, 0.5))

@@ -1,3 +1,5 @@
+import time
+
 from models import scan_config
 from sources import get_subdomain
 from utils import save_file_healthy, save_file_problem, check_result_dir, save_file_as_json, ReconStats, print_legend
@@ -45,8 +47,8 @@ def check_subdomain(domain: str):
             for s in subdomain:
                 futures.append(executor.submit(validate_subdomain, s, wildcard_baseline))
 
-                if config.delay > 0:
-                    sleep(config.delay)
+                if config.delay:
+                    time.sleep(0.1)
 
         sub_list = []
         for future in futures:
@@ -92,9 +94,9 @@ def check_wildcard(domain: str):
     res_https = send_request(proto="https", sub=wild_sub, time_out=config.timeout)
     if res_https.get("status") not in ["CONN_ERR", "SSL_ERR"]:
         baselines["http"] = {
-            "title": res_http.get("title"),
-            "status": res_http.get("status"),
-            "size": res_http.get("size")
+            "title": res_https.get("title"),
+            "status": res_https.get("status"),
+            "size": res_https.get("size")
         }
     return baselines
 
