@@ -125,7 +125,8 @@ def show_output(data: Mapping[str, Any], honeypotAnalyze):
         output_buffer.extend([colorize(t, color) for t in tech])
     if show_honeypot:
         honeypot = get_honeypot(data, config, honeypotAnalyze)
-        output_buffer.extend([colorize(t, color) for t in honeypot])
+        if honeypot != "-":
+            output_buffer.extend([colorize(t, color) for t in honeypot])
 
     if server is not None:
         if (200 in [h_status, s_status]) or not show_available:
@@ -216,6 +217,7 @@ def print_banner():
 def get_honeypot(data, config, honeypotAnalyze):
     honeypot = honeypotAnalyze(data, config)
     score, label, findings = honeypot.run_all()
+    if score == 0.0: return "-"
     score_pct = f"{score * 100:.1f}%"
     finding_pct = ", ".join(findings) if findings else "No specific patterns"
     return [f"        |_Honeypot: {score_pct} [{label}]",
