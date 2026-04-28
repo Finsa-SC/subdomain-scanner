@@ -27,24 +27,44 @@ class StealthMode:
             "DNT": "1"
         }
 
-    def get_jumbled_header(self) -> dict[str, str]:
-        header = self.base_headers.copy()
+    def _get_engine(self, ua: str) -> str:
+        if "firefox" in ua: return "firefox120"
+        if "safari" in ua and "chrome" not in ua: return "safari15_5"
+        return "chrome120"
 
-        if self.ua_active:
-            try:
-                header["User-Agent"] = self.ua.random if self.ua else self._get_manual_ua()
-            except:
-                header["User-Agent"] = self._get_manual_ua()
-        else:
-            header["User-Agent"] = self._get_manual_ua()
+    def get_payload(self):
+        full_ua = self.ua.random if self.ua_active else self._get_manual_ua()
 
-        header_items = list(header.items())
-        random.shuffle(header_items)
-        header_dict = dict(header_items)
+        referrers = [
+            "https://www.google.com/",
+            "https://www.google.co.id/",
+            "https://search.yahoo.com/",
+            "https://www.bing.com/",
+            "https://duckduckgo.com/",
+            None
+        ]
 
-        return dict(header_dict)
+        headers = {
+            "User-Agent": full_ua,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "DNT": "1",
+        }
+
+        ref = random.choice(referrers)
+        if ref:
+            headers["Referer"] = ref
+
+        return headers, self._get_engine(full_ua.lower())
 
     def _get_manual_ua(self) -> str:
         fallbacks = USER_AGENT_FALLBACK
         return random.choice(fallbacks)
+
 

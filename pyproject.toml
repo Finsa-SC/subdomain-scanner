@@ -3,6 +3,7 @@ name = "subdomain-finder"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
+    "curl-cffi>=0.15.0",
     "dotenv>=0.9.9",
     "fake-useragent>=2.2.0",
     "requests>=2.33.1",
