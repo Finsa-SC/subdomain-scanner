@@ -24,7 +24,7 @@ def main():
         prog="subf",
         description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="[!] WARNING: Use with caution. Scanning honeypots will trigger logs on the target server."
+        epilog="[!] WARNING: Use with caution. Scanning will trigger logs on the target server."
     )
     # 1. INPUT ARGUMENTS
     input_group = parser.add_argument_group('INPUT ARGUMENTS')
@@ -46,7 +46,7 @@ def main():
     profile_group.add_argument("-t", "--title", action="store_true", help="Print page title")
     profile_group.add_argument("-x", "--header-tech", action="store_true", help="Show subdomain tech from header")
     profile_group.add_argument("-r", "--redirect", action="store_true", help="Show redirect information")
-    profile_group.add_argument("--honeypot", action="store_true", help="Enable honeypot fingerprinting (LOGGED!)")
+    profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting to identify traps and fake services")
     profile_group.add_argument("-a", "--aggressive", action="store_true",
                                help="Enable all informative flags (-v, -t, -x, etc.)")
 
@@ -72,7 +72,7 @@ def main():
     args = parser.parse_args()
 
     if args.aggressive:
-        args.verbose = args.title = args.header_tech = args.redirect = True
+        args.verbose = args.title = args.header_tech = args.redirect, args.honeypot = True
 
     # Info simple
     if not args.quiet:
