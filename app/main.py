@@ -72,7 +72,7 @@ def main():
     args = parser.parse_args()
 
     if args.aggressive:
-        args.verbose = args.title = args.header_tech = args.redirect, args.honeypot = True
+        args.verbose = args.title = args.header_tech = args.redirect = args.honeypot = True
 
     # Info simple
     if not args.quiet:

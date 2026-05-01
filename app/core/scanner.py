@@ -1,13 +1,14 @@
-import time
+from typing import Any
 
 from models import scan_config
 from sources import get_subdomain
-from utils import save_file_healthy, save_file_problem, check_result_dir, save_file_as_json, ReconStats, print_legend
+from utils import save_file_healthy, save_file_problem, save_file_as_json, ReconStats, print_legend
 from concurrent.futures import ThreadPoolExecutor
 from .validate import validate_subdomain
 from .request import send_request
 
-from time import sleep
+from datetime import datetime
+import time
 import tldextract
 import os
 
@@ -63,13 +64,12 @@ def check_subdomain(domain: str):
 
         if config.save_file_plain:
             root = get_domain_root(subdomain[0])
-            check_result_dir()
             save_file_healthy(root, healthy_ip)
             save_file_problem(root, problem_ip)
         if config.save_file_json:
-            check_result_dir()
             root = get_domain_root(subdomain[0])
-            save_file_as_json(root, sub_list)
+            metadata = create_metadata(root)
+            save_file_as_json(root, sub_list, metadata)
 
         if not config.quiet:
             stats.summary()
@@ -103,3 +103,12 @@ def check_wildcard(domain: str):
 def get_domain_root(full_domain: str):
     root = tldextract.extract(full_domain)
     return f"{root.domain}.{root.suffix}"
+
+def create_metadata(domain: str) -> dict[str, Any]:
+    config = scan_config.current
+    metadata = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "domain": domain,
+        "thread_used": config.thread,
+    }
+    return metadata

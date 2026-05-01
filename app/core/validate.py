@@ -117,8 +117,9 @@ def humane_sleep(base_delay: float):
     config = scan_config.current
 
     if config.delay > 0:
-        jitter = base_delay * 0.5
+        jitter = base_delay * 0.25
         actual_delay = random.uniform(base_delay - jitter, base_delay + jitter)
         time.sleep(actual_delay)
     else:
         time.sleep(random.uniform(0.1, 0.5))
+
