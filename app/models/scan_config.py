@@ -21,5 +21,6 @@ class ScanConfig:
     honeypot: bool
     max_size: int
     min_size: int
+    dns: str
 
 current: 'ScanConfig' = None

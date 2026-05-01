@@ -57,6 +57,7 @@ def main():
     config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 10)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
     config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
+    config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or specific IP address")
 
     # 3. PROFILING & ANALYSIS
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
@@ -119,7 +120,8 @@ def main():
         color=args.color,
         honeypot=args.honeypot,
         max_size=args.max_size,
-        min_size=args.min_size
+        min_size=args.min_size,
+        dns=args.dns
     )
     scan_config.current = config
 
