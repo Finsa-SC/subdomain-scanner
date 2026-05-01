@@ -12,7 +12,7 @@ import sys
 ### Init env
 load_dotenv()
 TIMEOUT = float(os.getenv("TIMEOUT", 3.0))
-THREAD = int(os.getenv("THREAD", 10))
+THREAD = int(os.getenv("THREAD", 5))
 DEBUG = os.getenv("DEBUG", "false").lower().strip() == "true"
 DELAY = float(os.getenv("DELAY", 0.0))
 
@@ -72,7 +72,7 @@ def main():
     args = parser.parse_args()
 
     if args.aggressive:
-        args.verbose = args.title = args.header_tech = args.redirect, args.honeypot = True
+        args.verbose = args.title = args.header_tech = args.redirect = args.honeypot = True
 
     # Info simple
     if not args.quiet:
