@@ -57,8 +57,13 @@ def save_file_as_json(domain: str , all_results, scan_metadata):
     }
 
     for item in all_results:
-        item = clean_item(item)
+        h_raw = item.get("http", {})
+        s_raw = item.get("https", {})
 
+        fp_raw = f"{h_raw.get('status')}-{s_raw.get('status')}-{h_raw.get('server')}-{h_raw.get('body_hash')}"
+        fp_hash = hashlib.md5(fp_raw.encode()).hexdigest()
+
+        item = clean_item(item)
         h = item.get("http", {})
         s = item.get("https", {})
 
@@ -83,8 +88,6 @@ def save_file_as_json(domain: str , all_results, scan_metadata):
             smart_structure["findings"]["honeypots"].append(item)
             continue
 
-        fp_raw = f"{h.get('status')}-{s.get('status')}-{h.get('server')}-{h.get('body_hash')}"
-        fp_hash = hashlib.md5(fp_raw.encode()).hexdigest()
 
         is_active = h.get("status") in (200, 301, 302) or s.get("status") in (200, 301, 302)
 
@@ -118,7 +121,10 @@ def save_file_as_json(domain: str , all_results, scan_metadata):
     print(f"[*] Success save JSON results as {file_name}")
 
 def clean_item(item):
+    keep_fields = {"status", "title", "server", "size", "redir"}
     for proto in ("http", "https"):
         if proto in item:
-            item[proto].pop("tech", None)
+            item[proto] = {k: v for k, v in item[proto].items() if k in keep_fields}
+    item.pop("signing", None)
+    item.pop("timestamp", None)
     return item
