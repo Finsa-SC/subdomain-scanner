@@ -26,8 +26,10 @@ def validate_subdomain(sub, wildcard_baseline):
         except socket.gaierror:
             ip_address = "No IP"
 
-        dict_http = send_request("http", sub, config.timeout)
-        dict_https = send_request("https", sub, config.timeout)
+        custom_dns = config.dns
+
+        dict_http = send_request("http", sub, config.timeout, custom_dns)
+        dict_https = send_request("https", sub, config.timeout, custom_dns)
 
         h = dict_http if dict_http else {}
         s = dict_https if dict_https else {}
@@ -54,8 +56,6 @@ def validate_subdomain(sub, wildcard_baseline):
         https_keys = s.get("header") or []
         https_hash = s.get("body_hash")
 
-        print(f"[DEBUG] size h: {http_size}")
-        print(f"[DEBUG] size s: {https_size}")
         ##Size filtering
         if size_filtering(http_size, https_size):
             return None, None, None

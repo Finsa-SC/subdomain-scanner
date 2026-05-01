@@ -121,3 +121,10 @@ USER_AGENT_FALLBACK = [
             "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
         ]
+
+DNS_PROVIDERS = {
+    "cloudflare": "1.1.1.1",
+    "google": "8.8.8.8",
+    "quad9": "9.9.9.9",
+    "opendns": "208.67.222.222"
+}

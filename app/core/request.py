@@ -1,29 +1,42 @@
 from .stealth import StealthMode
+from models import DNS_PROVIDERS
 
 from curl_cffi import requests
 import html
 import urllib3
 import re
 import hashlib
+import dns.resolver
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 stealth = StealthMode()
 
-def send_request(proto ,sub, time_out):
+def send_request(proto: str ,sub: str, time_out: float, custom_dns: str = None) -> dict:
     try:
         sub_url = f"{proto}://{sub}"
         stealth_header, browser_engine = stealth.get_payload()
 
+        resolve_option = []
+        if custom_dns:
+            dns_ip = DNS_PROVIDERS.get(custom_dns.lower(), custom_dns)
+            ip = resolve_ip(sub, dns_ip)
+            if ip:
+                port = 443 if proto == "https" else "80"
+                resolve_option = [f"{sub}:{port}:{ip}"]
         with requests.Session() as session:
-            res = session.get(
-                url=sub_url,
-                timeout=time_out,
-                headers=stealth_header,
-                impersonate=browser_engine,
-                allow_redirects=False,
-                verify=False
-            )
+            req_kwargs = {
+                "url":sub_url,
+                "timeout" :time_out,
+                "headers" :stealth_header,
+                "impersonate" :browser_engine,
+                "allow_redirects" :False,
+                "verify" :False
+            }
+
+            if resolve_option:
+                req_kwargs["resolve"] = resolve_option
+            res = session.get(**req_kwargs)
 
         body_hash = hashlib.md5(res.content).hexdigest() if res.content else "d41d8cd98f00b204e9800998ecf8427e"
 
@@ -59,3 +72,11 @@ def get_html_title(res):
     except:
         return "-"
 
+def resolve_ip(sub: str, custom_dns: str) -> str | None:
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.nameservers = [custom_dns]
+        answer = resolver.resolve(sub, 'A')
+        return str(answer[0])
+    except:
+        return None
