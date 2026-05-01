@@ -35,7 +35,7 @@ def validate_subdomain(sub, wildcard_baseline):
         http_status = h.get("status")
         http_server = h.get("server", "Unknown")
         http_latency = h.get("latency")
-        http_size = h.get("length", b"")
+        http_size = h.get("size", b"")
         http_redir = h.get("location", "-")
         http_title = h.get("title", "")
         http_header = h.get("header") if h.get("header") is not None else {}
@@ -45,7 +45,7 @@ def validate_subdomain(sub, wildcard_baseline):
         https_status = s.get("status")
         https_server = s.get("server", "Unknown")
         https_latency = s.get("latency")
-        https_size = s.get("length", b"")
+        https_size = s.get("size", b"")
         https_redir = s.get("location", "-")
         https_title = s.get("title", "")
         https_header = s.get("header") if s.get("header") is not None else {}
@@ -57,11 +57,18 @@ def validate_subdomain(sub, wildcard_baseline):
         baselines = wildcard_baseline
         http_wildcard = False
         https_wildcard = False
+
+        http_size_val = len(http_size) if isinstance(http_size, bytes) else http_size
+        https_size_val = len(https_size) if isinstance(https_size, bytes) else https_size
         if baselines["http"]:
-            if baselines["http"]["status"] == 200 and baselines["http"]["size"] == len(http_size) if isinstance(http_size, bytes) else http_size and baselines["http"]["title"] == http_title:
+            if (baselines["http"]["status"] == 200 and
+                baselines["http"]["size"] ==  http_size_val and
+                baselines["http"]["title"] == http_title):
                 http_wildcard = True
         if baselines["https"]:
-            if baselines["https"]["status"] == 200 and baselines["https"]["size"] == len(https_size) if isinstance(https_size, bytes) else https_size and baselines["https"]["title"] == https_title:
+            if (baselines["https"]["status"] == 200 and
+                baselines["https"]["size"] == https_size_val and
+                baselines["https"]["title"] == https_title):
                 https_wildcard = True
         if (http_wildcard or https_wildcard) and config.no_wildcard:
             return None, None, None

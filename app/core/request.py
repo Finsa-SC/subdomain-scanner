@@ -33,7 +33,7 @@ def send_request(proto ,sub, time_out):
             "server": res.headers.get('Server', 'Unknown'),
             "location": res.headers.get("Location", "-"),
             "latency": int(res.elapsed.total_seconds() * 1000),
-            "length": len(res.content),
+            "size": len(res.content),
             "timestamp": res.headers.get('Date'),
             "header": res.headers,
             "body_hash": body_hash,

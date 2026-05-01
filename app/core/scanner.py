@@ -2,17 +2,15 @@ from typing import Any
 
 from models import scan_config
 from sources import get_subdomain
-from utils import save_file_healthy, save_file_problem, save_file_as_json, ReconStats, print_legend
+from utils import save_file_healthy, save_file_problem, save_file_as_json, print_legend
 from concurrent.futures import ThreadPoolExecutor
-from .validate import validate_subdomain
+from .validate import validate_subdomain, stats
 from .request import send_request
 
 from datetime import datetime
 import time
 import tldextract
 import os
-
-stats = ReconStats()
 
 def check_subdomain(domain: str):
     config = scan_config.current
@@ -93,7 +91,7 @@ def check_wildcard(domain: str):
 
     res_https = send_request(proto="https", sub=wild_sub, time_out=config.timeout)
     if res_https.get("status") not in ["CONN_ERR", "SSL_ERR"]:
-        baselines["http"] = {
+        baselines["https"] = {
             "title": res_https.get("title"),
             "status": res_https.get("status"),
             "size": res_https.get("size")

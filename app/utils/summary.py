@@ -7,9 +7,9 @@ class ReconStats:
     def log(self, http_status, https_status):
         code = [http_status, https_status]
 
-        if any(isinstance(c, int) and c == 200 for c in code):
+        if any(isinstance(c, int) and c in (200, 301, 302) for c in code):
             self.ok += 1
-        elif any(isinstance(c, int) and c == 302 for c in code):
+        elif any(isinstance(c, int) and c in (402, 403) for c in code):
             self.forbidden += 1
         elif "SSL_ERR" in code:
             self.ssl_error += 1
