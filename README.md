@@ -7,17 +7,15 @@
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Security](https://img.shields.io/badge/Use-Ethical%20Only-red?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
-![Made in Indonesia](https://img.shields.io/badge/Made%20in-Indonesia%20🇮🇩-red?style=flat-square)
 
 **A lightweight yet powerful CLI tool for subdomain enumeration, HTTP/HTTPS validation, and honeypot detection.**
-
-*Built with ❤️ from Indonesia 🇮🇩*
 
 </div>
 
 ---
 
-> 🟡 **Recon Type: Hybrid (Passive + Active)**
+> [!WARNING]
+> **Recon Type: Hybrid (Passive + Active)**
 > Subdomain *discovery* is done passively via external APIs — no direct contact with the target.
 > The *validation* phase sends real HTTP/HTTPS requests to each discovered subdomain, meaning your traffic **will be logged** by the target and may trigger IDS/WAF alerts.
 > **Only use this tool on domains you own or have explicit written permission to test.**
@@ -65,8 +63,8 @@
 
 ```bash
 # Clone
-git clone --depth 1 https://github.com/Finsa-SC/subdomain-finder.git
-cd subdomain-finder
+git clone --depth 1 https://github.com/Finsa-SC/subdomain-validator.git
+cd subdomain-validator
 
 # Create virtual environment
 uv venv --python 3.10
@@ -329,7 +327,7 @@ Results are saved in the `results/` directory. Cloudflare IPs are automatically 
 ## 🏗️ Project Structure
 
 ```
-subdomain-finder/
+subdomain-validator/
 ├── app/
 │   ├── main.py             # Entry point — argparse CLI & stdin/pipe support
 │   ├── analysis/
@@ -373,8 +371,7 @@ docker run --rm subv -d example.com -all
 
 ---
 
-## ⚠️ Disclaimer
-
+> [!WARNING]
 > **Gunakan dengan bijak. / Use responsibly.**
 >
 > This tool performs **active reconnaissance** — during the validation phase, HTTP/HTTPS requests are sent directly to each discovered subdomain. Your activity **will be logged** by the target and may trigger IDS/WAF alerts.
@@ -397,7 +394,7 @@ Distributed under the [MIT License](LICENSE).
 
 <div align="center">
 
-**subdomain-finder** — Built with ❤️ using Python & multiple OSINT sources
+**subdomain-validator** — Built with ❤️ using Python & multiple OSINT sources
 
 🇮🇩 *Proudly made in Indonesia by [Finsa Kusuma Putra](https://github.com/Finsa-SC)*
 
