@@ -47,7 +47,8 @@ class ReconStats:
                    self.server_error +
                    self.redirect +
                    self.not_found +
-                   self.other
+                   self.other +
+                   self.rate_limit
         )
 
         total_scan = host_up + self.ssl_error + self.dead
