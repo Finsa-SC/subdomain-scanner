@@ -4,6 +4,10 @@ from datetime import datetime
 import tldextract
 import os
 import itertools
+from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TextColumn, MofNCompleteColumn, TimeElapsedColumn
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from models import get_config
 from sources import get_subdomain
@@ -53,38 +57,67 @@ def check_subdomain(domain: str):
     counting = CountTime()
     counting.start()
 
+    console = Console()
+    total_estimate = config.thread * 4
+    processed = 0
+
     try:
-        with ThreadPoolExecutor(max_workers=config.thread) as executor:
-            futures = {
-                executor.submit(validate_subdomain, sub, wildcard_baseline): sub
-                for sub in itertools.islice(subdomain_iter, config.thread * 4)
-            }
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[cyan]{task.description}"),
+            BarColumn(complete_style="green", finished_style="bold green"),
+            MofNCompleteColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            TextColumn("•"),
+            TextColumn("[yellow]{task.fields[speed]:.1f} req/s"),
+            console=console,
+            transient=True
+        ) as progress:
 
-            while futures:
-                done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
+            task = progress.add_task(
+                "[cyan]Scanning subdomains...",
+                total= None,
+                speed= 0.0
+            )
 
-                for future in done:
-                    try:
-                        is_ok, ip, dict_sub = future.result()
-                        if ip and ip != "No IP":
-                            if is_ok:
-                                healthy_ip.add(ip)
-                            else:
-                                problem_ip.add(ip)
-                        if dict_sub:
-                            sub_list.append(dict_sub)
-                    except Exception as e:
-                        print(f"[x] Error: {e}")
+            with ThreadPoolExecutor(max_workers=config.thread) as executor:
+                futures = {
+                    executor.submit(validate_subdomain, sub, wildcard_baseline): sub
+                    for sub in itertools.islice(subdomain_iter, config.thread * 4)
+                }
 
-                    del futures[future]
+                while futures:
+                    done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
-                    next_sub = next(subdomain_iter, None)
-                    if next_sub:
-                        new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
-                        futures[new_f] = next_sub
+                    for future in done:
+                        try:
+                            is_ok, ip, dict_sub = future.result()
+                            if ip and ip != "No IP":
+                                if is_ok:
+                                    healthy_ip.add(ip)
+                                else:
+                                    problem_ip.add(ip)
+                            if dict_sub:
+                                sub_list.append(dict_sub)
 
-                        if config.delay:
-                            time.sleep(config.delay)
+                            processed += 1
+
+                            elapsed = datetime.now()
+                            speed = processed / elapsed if elapsed > 0 else 0
+                            progress.update(task, completed=processed, speed=speed)
+                        except Exception as e:
+                            print(f"[x] Error: {e}")
+
+                        del futures[future]
+
+                        next_sub = next(subdomain_iter, None)
+                        if next_sub:
+                            new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                            futures[new_f] = next_sub
+
+                            if config.delay:
+                                time.sleep(config.delay)
         counting.end()
 
         if config.save_file_plain:
@@ -151,6 +184,12 @@ class CountTime:
 
     def end(self):
         self.end_time = datetime.now()
+
+    def get_elapsed(self):
+        if self.start_time is None:
+            return 0
+        end = self.end_time if self.end_time else datetime.now()
+        return (end - self.start_time).total_seconds()
 
     @property
     def total(self):
