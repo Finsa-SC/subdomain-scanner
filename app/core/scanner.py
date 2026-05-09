@@ -1,76 +1,99 @@
 from typing import Any
-
-from models import get_config
-from sources import get_subdomain
-from utils import save_file_healthy, save_file_problem, save_file_as_json, print_legend
-from concurrent.futures import ThreadPoolExecutor
-from .validate import validate_subdomain, stats
-from .request import send_request
-
 from datetime import datetime
 import time
 import tldextract
 import os
+import itertools
+
+from models import get_config
+from sources import get_subdomain
+from utils import save_file_healthy, save_file_problem, save_file_as_json, print_legend
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from .validate import validate_subdomain, stats
+from .request import send_request
+
 
 def check_subdomain(domain: str):
     config = get_config()
+    sub_list = []
     healthy_ip = set()
     problem_ip = set()
 
-    subdomain = []
     if os.path.isfile(domain):
         if not config.quiet:
             print("validate as file")
-        with open(domain, "r")as f:
-            subdomain = [line.strip() for line in f.read().splitlines() if line.strip()]
+
+        def _file_gen():
+            with open(domain, "r") as file:
+                for line in file:
+                    s = line.strip()
+                    if s and not s.startswith("#"):
+                        yield s
+
+        subdomain_iter = _file_gen()
     elif "." in domain and not domain.endswith(".txt"):
         if not config.quiet:
             print(f"Search for subdomain for {domain}")
-        subdomain = get_subdomain(domain, config.all_resource, config.source)
+        subdomain_iter = iter(get_subdomain(domain, config.all_resource, config.source))
     else:
         print("[x] Invalid domain or file path!")
         exit(0)
 
-    if not subdomain:
-        print("[x] No subdomain found!")
+    first_sub = next(subdomain_iter, None)
+    if not first_sub:
+        print(f"[x] No subdomain found!!")
         exit(0)
+
+    domain_root = get_domain_root(first_sub)
+    wildcard_baseline = check_wildcard(domain_root)
+    subdomain_iter = itertools.chain([first_sub], subdomain_iter)
 
     if not config.quiet:
         print(print_legend())
-        print(f"[+] Found {len(subdomain)} potential hosts, starting validation\n")
 
-    wildcard_baseline = check_wildcard(get_domain_root(subdomain[0]))
     try:
         with ThreadPoolExecutor(max_workers=config.thread) as executor:
-            futures = []
-            for s in subdomain:
-                futures.append(executor.submit(validate_subdomain, s, wildcard_baseline))
+            MAX_INFLIGHT = config.thread * 4
+            futures = {}
 
-                if config.delay:
-                    time.sleep(0.1)
+            for sub in itertools.islice(subdomain_iter, MAX_INFLIGHT):
+                f = executor.submit(validate_subdomain, sub, wildcard_baseline)
+                futures[f] = sub
 
-        sub_list = []
-        for future in futures:
-            is_ok, ip, dict_sub = future.result()
-            if ip != "No IP":
-                if is_ok:
-                    healthy_ip.add(ip)
-                else:
-                    problem_ip.add(ip)
-            if dict_sub:
-                sub_list.append(dict_sub)
+            for future in as_completed(futures):
+                futures.pop(future)
+
+                next_sub = next(subdomain_iter, None)
+                if next_sub:
+                    f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                    futures[f] = next_sub
+
+                    if config.delay:
+                        time.sleep(config.delay)
+                try:
+                    is_ok, ip, dict_sub = future.result()
+                except Exception as e:
+                    print(f"[x] Error: {e}")
+                    continue
+
+                if ip and ip != "No IP":
+                    if is_ok:
+                        healthy_ip.add(ip)
+                    else:
+                        problem_ip.add(ip)
+                if dict_sub:
+                    sub_list.append(dict_sub)
 
         if config.save_file_plain:
-            root = get_domain_root(subdomain[0])
-            save_file_healthy(root, healthy_ip)
-            save_file_problem(root, problem_ip)
+            save_file_healthy(domain_root, healthy_ip)
+            save_file_problem(domain_root, problem_ip)
         if config.save_file_json:
-            root = get_domain_root(subdomain[0])
-            metadata = create_metadata(root)
-            save_file_as_json(root, sub_list, metadata)
+            metadata = create_metadata(domain_root)
+            save_file_as_json(domain_root, sub_list, metadata)
 
         if not config.quiet:
             stats.summary()
+            print(f"[+] Found {len(sub_list)} potential hosts, starting validation\n")
 
     except KeyboardInterrupt:
         print("\n[!]Process stop by user...")

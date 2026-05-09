@@ -30,3 +30,4 @@ class ReconStats:
         print(f"SSL Error    : {self.ssl_error}")
         print(f"Server Error : {self.server_error}")
         print(f"No Response  : {self.dead}")
+        print(f"\n\nTotal Host Scanned: {self.ok + self.forbidden + self.ssl_error + self.server_error + self.dead}")
