@@ -4,6 +4,12 @@ from datetime import datetime
 import tldextract
 import os
 import itertools
+from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TextColumn, MofNCompleteColumn, TimeElapsedColumn
+from rich.console import Console
+from rich.live import Live
+from rich.text import Text
+from rich.panel import Panel
+from rich.table import Table
 
 from models import get_config
 from sources import get_subdomain
@@ -53,39 +59,62 @@ def check_subdomain(domain: str):
     counting = CountTime()
     counting.start()
 
+    console = Console()
+    processed = 0
+
+    console.print()
+
     try:
-        with ThreadPoolExecutor(max_workers=config.thread) as executor:
-            futures = {
-                executor.submit(validate_subdomain, sub, wildcard_baseline): sub
-                for sub in itertools.islice(subdomain_iter, config.thread * 4)
-            }
+        with Live(console=console, refresh_per_second=4, transient=True) as live:
 
-            while futures:
-                done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
+            with ThreadPoolExecutor(max_workers=config.thread) as executor:
+                futures = {
+                    executor.submit(validate_subdomain, sub, wildcard_baseline): sub
+                    for sub in itertools.islice(subdomain_iter, config.thread * 4)
+                }
 
-                for future in done:
-                    try:
-                        is_ok, ip, dict_sub = future.result()
-                        if ip and ip != "No IP":
-                            if is_ok:
-                                healthy_ip.add(ip)
-                            else:
-                                problem_ip.add(ip)
-                        if dict_sub:
-                            sub_list.append(dict_sub)
-                    except Exception as e:
-                        print(f"[x] Error: {e}")
+                while futures:
+                    done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
-                    del futures[future]
+                    for future in done:
+                        try:
+                            is_ok, ip, dict_sub = future.result()
+                            if ip and ip != "No IP":
+                                if is_ok:
+                                    healthy_ip.add(ip)
+                                else:
+                                    problem_ip.add(ip)
+                            if dict_sub:
+                                sub_list.append(dict_sub)
 
-                    next_sub = next(subdomain_iter, None)
-                    if next_sub:
-                        new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
-                        futures[new_f] = next_sub
+                            processed += 1
 
-                        if config.delay:
-                            time.sleep(config.delay)
+                            elapsed = (datetime.now() - counting.start_time).total_seconds()
+                            speed = processed / elapsed if elapsed > 0 else 0
+
+                            status = Text()
+                            status.append("⚡ Scanning: ", style="cyan bold")
+                            status.append(f"{processed}", style="bold blue")
+                            status.append(" Subdomain •", style="dim")
+                            status.append(f"{elapsed:.2f}", style="yellow")
+                            status.append("•", style="dim")
+                            status.append(f"{speed:.2f} req/s", style="green")
+
+                            live.update(status)
+                        except Exception as e:
+                            console.print(f"[x] Error: {e}")
+
+                        del futures[future]
+
+                        next_sub = next(subdomain_iter, None)
+                        if next_sub:
+                            new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                            futures[new_f] = next_sub
+
+                            if config.delay:
+                                time.sleep(config.delay)
         counting.end()
+        console.print()
 
         if config.save_file_plain:
             save_file_healthy(domain_root, healthy_ip)
@@ -151,6 +180,12 @@ class CountTime:
 
     def end(self):
         self.end_time = datetime.now()
+
+    def get_elapsed(self):
+        if self.start_time is None:
+            return 0
+        end = self.end_time if self.end_time else datetime.now()
+        return (end - self.start_time).total_seconds()
 
     @property
     def total(self):

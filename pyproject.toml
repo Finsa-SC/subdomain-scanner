@@ -10,5 +10,6 @@ dependencies = [
     "ijson>=3.5.0",
     "python-dotenv>=1.2.2",
     "requests>=2.33.1",
+    "rich>=15.0.0",
     "tldextract>=5.3.1",
 ]

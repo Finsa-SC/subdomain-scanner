@@ -469,6 +469,7 @@ dependencies = [
     { name = "ijson" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "rich" },
     { name = "tldextract" },
 ]
 
@@ -481,6 +482,7 @@ requires-dist = [
     { name = "ijson", specifier = ">=3.5.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "requests", specifier = ">=2.33.1" },
+    { name = "rich", specifier = ">=15.0.0" },
     { name = "tldextract", specifier = ">=5.3.1" },
 ]
 
