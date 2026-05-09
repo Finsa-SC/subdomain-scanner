@@ -6,6 +6,8 @@ import os
 import itertools
 from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TextColumn, MofNCompleteColumn, TimeElapsedColumn
 from rich.console import Console
+from rich.live import Live
+from rich.text import Text
 from rich.panel import Panel
 from rich.table import Table
 
@@ -58,28 +60,12 @@ def check_subdomain(domain: str):
     counting.start()
 
     console = Console()
-    total_estimate = config.thread * 4
     processed = 0
 
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]{task.description}"),
-            BarColumn(complete_style="green", finished_style="bold green"),
-            MofNCompleteColumn(),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            TextColumn("•"),
-            TextColumn("[yellow]{task.fields[speed]:.1f} req/s"),
-            console=console,
-            transient=True
-        ) as progress:
+    console.print()
 
-            task = progress.add_task(
-                "[cyan]Scanning subdomains...",
-                total= None,
-                speed= 0.0
-            )
+    try:
+        with Live(console=console, refresh_per_second=4, transient=True) as live:
 
             with ThreadPoolExecutor(max_workers=config.thread) as executor:
                 futures = {
@@ -103,11 +89,20 @@ def check_subdomain(domain: str):
 
                             processed += 1
 
-                            elapsed = datetime.now()
+                            elapsed = (datetime.now() - counting.start_time).total_seconds()
                             speed = processed / elapsed if elapsed > 0 else 0
-                            progress.update(task, completed=processed, speed=speed)
+
+                            status = Text()
+                            status.append("⚡ Scanning: ", style="cyan bold")
+                            status.append(f"{processed}", style="bold blue")
+                            status.append(" Subdomain •", style="dim")
+                            status.append(f"{elapsed:.2f}", style="yellow")
+                            status.append("•", style="dim")
+                            status.append(f"{speed:.2f} req/s", style="green")
+
+                            live.update(status)
                         except Exception as e:
-                            print(f"[x] Error: {e}")
+                            console.print(f"[x] Error: {e}")
 
                         del futures[future]
 
@@ -119,6 +114,7 @@ def check_subdomain(domain: str):
                             if config.delay:
                                 time.sleep(config.delay)
         counting.end()
+        console.print()
 
         if config.save_file_plain:
             save_file_healthy(domain_root, healthy_ip)
