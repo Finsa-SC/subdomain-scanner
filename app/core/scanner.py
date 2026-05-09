@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, FIRST_COMPLETED
 from .validate import validate_subdomain, stats
 from .request import send_request
 
-
 def check_subdomain(domain: str):
     config = get_config()
     sub_list = []
@@ -104,7 +103,13 @@ def check_wildcard(domain: str):
     wild_sub = f"{os.urandom(2).hex()}.{domain}"
     baselines = {"http": None, "https": None}
 
-    res_http = send_request(proto="http", sub=wild_sub, time_out=config.timeout)
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        http_future = ex.submit(send_request, "http", wild_sub, config.timeout)
+        https_future = ex.submit(send_request, "https", wild_sub, config.timeout)
+
+        res_http = http_future.result()
+        res_https = https_future.result()
+
     if res_http.get("status") not in ["CONN_ERR", "SSL_ERR"]:
         baselines["http"] = {
             "title": res_http.get("title"),
@@ -112,7 +117,6 @@ def check_wildcard(domain: str):
             "size": res_http.get("size")
         }
 
-    res_https = send_request(proto="https", sub=wild_sub, time_out=config.timeout)
     if res_https.get("status") not in ["CONN_ERR", "SSL_ERR"]:
         baselines["https"] = {
             "title": res_https.get("title"),
