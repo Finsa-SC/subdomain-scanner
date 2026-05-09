@@ -1,5 +1,4 @@
 import re
-
 import requests
 
 def fetch_rapiddns(domain: str):
@@ -15,8 +14,9 @@ def fetch_rapiddns(domain: str):
         pattern = r'>([a-z0-9.-]+\.' + re.escape(domain) + r')<'
         matches = re.findall(pattern, res.text)
         for sub in matches:
-            subdomains.add(sub.lower().strip())
-    except:
-        ...
-    finally:
-        return subdomains
+            if sub:
+                yield sub
+    except requests.exceptions.Timeout:
+        print(f"[x] RapidDns: Request timeout...")
+    except requests.exceptions.RequestException as e:
+        print(f"[x] RapidDns: {e}")

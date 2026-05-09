@@ -14,29 +14,30 @@ stealth = StealthMode()
 
 def send_request(proto: str ,sub: str, time_out: float, custom_dns: str = None) -> dict:
     try:
-        sub_url = f"{proto}://{sub}"
         stealth_header, browser_engine = stealth.get_payload()
 
-        resolve_option = []
         if custom_dns:
             dns_ip = DNS_PROVIDERS.get(custom_dns.lower(), custom_dns)
-            ip = resolve_ip(sub, dns_ip)
+            ip = resolve_ip(sub, dns_ip, 'A') or resolve_ip(sub, dns_ip, 'AAAA')
             if ip:
-                port = 443 if proto == "https" else "80"
-                resolve_option = [f"{sub}:{port}:{ip}"]
-        with requests.Session() as session:
-            req_kwargs = {
-                "url":sub_url,
-                "timeout" :time_out,
-                "headers" :stealth_header,
-                "impersonate" :browser_engine,
-                "allow_redirects" :False,
-                "verify" :False
-            }
+                formated_ip = f"[{ip}]" if ":" in ip else ip
+                sub_url = f"{proto}://{formated_ip}"
+                stealth_header["Host"] = sub
+            else:
+                return {"status": "DNS Error!!"}
+        else:
+            sub_url = f"{proto}://{sub}"
 
-            if resolve_option:
-                req_kwargs["resolve"] = resolve_option
-            res = session.get(**req_kwargs)
+        req_kwargs = {
+            "url":sub_url,
+            "timeout": time_out,
+            "headers": stealth_header,
+            "impersonate": browser_engine,
+            "allow_redirects": False,
+            "verify": False
+        }
+
+        res = requests.get(**req_kwargs)
 
         body_hash = hashlib.md5(res.content).hexdigest() if res.content else "d41d8cd98f00b204e9800998ecf8427e"
 
@@ -58,7 +59,8 @@ def send_request(proto: str ,sub: str, time_out: float, custom_dns: str = None) 
         if "SSL" in err_msg or "CERTIFICATE" in err_msg:
             return {"status": "SSL_ERR"}
         return {"status": "CONN_ERR"}
-    except Exception:
+    except Exception as e:
+        # print(f"[DEBUG] Error detail for {sub}: {type(e).__name__} - {e}")
         return {"status": "CONN_ERR"}
 
 def get_html_title(res):
@@ -72,11 +74,16 @@ def get_html_title(res):
     except:
         return "-"
 
-def resolve_ip(sub: str, custom_dns: str) -> str | None:
+def resolve_ip(sub: str, custom_dns: str, record_type: str) -> str | None:
     try:
         resolver = dns.resolver.Resolver()
         resolver.nameservers = [custom_dns]
-        answer = resolver.resolve(sub, 'A')
+        resolver.lifetime = 2.0
+        resolver.timeout = 2.0
+
+        answer = resolver.resolve(sub, record_type)
         return str(answer[0])
-    except:
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        return None
+    except Exception:
         return None

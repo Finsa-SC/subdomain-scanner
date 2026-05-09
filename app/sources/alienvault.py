@@ -18,8 +18,8 @@ def fetch_alienvault(domain: str):
             hostname = entry.get("hostname")
             if hostname:
                 sub = hostname.strip().lower()
-                if sub.endswith(f".{domain}") or sub == domain:
-                    subdomains.add(sub)
+                if sub and (sub.endswith(f".{domain}") or sub == domain):
+                    yield sub
     except Exception as e:
         print(e)
     finally:
