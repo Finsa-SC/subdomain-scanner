@@ -14,9 +14,10 @@ from .request import send_request
 
 def check_subdomain_tui(domain: str, config, callback):
     config = get_config()
-    sub_list = []
-    healthy_ip = set()
-    problem_ip = set()
+
+ #===============================DEBUG======================================
+    with open("/tmp/debug.log", "a") as f:
+        f.write(f"[scanner] start, domain={domain}\n")
 
     if os.path.isfile(domain):
         def _file_gen():
@@ -39,9 +40,6 @@ def check_subdomain_tui(domain: str, config, callback):
     wildcard_baseline = check_wildcard(domain_root)
     subdomain_iter = itertools.chain([first_sub], subdomain_iter)
 
-    if not config.quiet:
-        print(print_legend())
-
     counting = CountTime()
     counting.start()
 
@@ -58,7 +56,8 @@ def check_subdomain_tui(domain: str, config, callback):
                 for future in done:
                     try:
                         is_ok, ip, dict_sub = future.result()
-                        if dict_sub:
+
+                        if dict_sub is not None:
                             dict_sub["is_live"] = is_ok
                             dict_sub["server"] = (
                                 dict_sub.get("https", {}).get("server") or
@@ -66,20 +65,24 @@ def check_subdomain_tui(domain: str, config, callback):
                                 "Unknown"
                             )
 
-                        if config.honeypot:
-                            from analysis import HoneypotAnalyzer
+                            if config.honeypot:
+                                from analysis import HoneypotAnalyzer
 
-                            analyzer = HoneypotAnalyzer(dict_sub, config)
-                            score, label, _ = analyzer.run_all()
-                            dict_sub["is_honeypot"] = score > 0.5
-                            dict_sub["honeypot_score"] = score
-                            dict_sub["honeypot_label"] = label
+                                analyzer = HoneypotAnalyzer(dict_sub, config)
+                                score, label, _ = analyzer.run_all()
+                                dict_sub["is_honeypot"] = score > 0.5
+                                dict_sub["honeypot_score"] = score
+                                dict_sub["honeypot_label"] = label
                         else:
                             dict_sub["is_honeypot"] = False
                             dict_sub["honeypot_score"] = 0
                             dict_sub["honeypot_label"] = "N/A"
 
                         callback(dict_sub)
+
+                        # ===============================DEBUG======================================
+                        with open("/tmp/debug.log", "a") as f:
+                            f.write(f"[scanner] callback fired: {dict_sub.get('subdomain')}\n")
                     except Exception:
                         pass
 
@@ -90,8 +93,9 @@ def check_subdomain_tui(domain: str, config, callback):
                         new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
                         futures[new_f] = next_sub
 
-                        if config.delay:
-                            time.sleep(config.delay)
+                    if config.delay:
+                        time.sleep(config.delay)
+
         counting.end()
 
     except KeyboardInterrupt:

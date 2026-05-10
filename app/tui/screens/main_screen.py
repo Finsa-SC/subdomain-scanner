@@ -65,6 +65,8 @@ class MainScreen(Screen):
     def on_subdomain_found(self, results):
         def update_ui():
             self.results.append(results)
+            with open("/tmp/debug.log", "a") as f:
+                f.write(f"[ui] update_ui called, subdomain={results.get('subdomain')}, total={len(self.results)}\n")
             self.apply_filter()
             self.update_stats()
         self.call_from_thread(update_ui)
