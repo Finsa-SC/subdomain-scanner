@@ -15,12 +15,12 @@ import threading
 class MainScreen(Screen):
     BINDINGS = [
         Binding("slash", "focus_filter", "Filter", key_display="/"),
-        Binding("enter", "show_details", "Details"),
+        Binding("d", "show_details", "Details"),
         Binding("f", "toggle_fullscreen", "Fullscreen"),
         Binding("e", "export_selected", "Export"),
         Binding("shift+e", "export_all", "Export All"),
         Binding("c", "copy_subdomain", "Copy"),
-        Binding("o", "open_browser", "Open"),
+        Binding("b", "open_browser", "Open"),
         Binding("r", "refresh", "Refresh"),
         Binding("escape", "close_detail", "Close"),
         Binding("f1", "show_help", "Help"),
@@ -35,6 +35,7 @@ class MainScreen(Screen):
         self.filtered_results = []
         self.detail_visible = False
         self.detail_fullscreen = False
+        self._rendered_count = 0
 
     def compose(self):
         yield Input(
@@ -69,23 +70,27 @@ class MainScreen(Screen):
                 f.write(f"[ui] update_ui called, subdomain={results.get('subdomain')}, total={len(self.results)}\n")
             self.apply_filter()
             self.update_stats()
-        self.call_from_thread(update_ui)
+        self.app.call_from_thread(update_ui)
 
-    def on_input_changed(self, event: Input.Changed):
+    def on_input_submitted(self, event: Input.Submitted):
         if event.input.id == "filter-input":
             self.apply_filter()
 
     def apply_filter(self):
         filter_input = self.query_one("#filter-input", Input)
         query = filter_input.value
+        table = self.query_one("#subdomain-table", SubdomainTable)
 
         if not query.strip():
+            new_result = self.results[self._rendered_count:]
+            for r in new_result:
+                table.append_row(r)
+            self._rendered_count = len(self.results)
             self.filtered_results = self.results.copy()
         else:
+            self._rendered_count = 0
             self.filtered_results = self.parser.parse(query, self.results)
-
-        table = self.query_one("#subdomain-table", SubdomainTable)
-        table.update_data(self.filtered_results)
+            table.update_data(self.filtered_results)
 
     def update_stats(self):
         status_bar = self.query_one("#status-bar", StatsBar)
@@ -157,3 +162,11 @@ class MainScreen(Screen):
     def action_show_help(self):
         from .help_screen import HelpScreen
         self.app.push_screen(HelpScreen())
+
+    def on_key(self, event):
+        if event.key == "escape":
+            filter_input = self.query_one("#filter-input", Input)
+            table = self.query_one("#subdomain-table", SubdomainTable)
+            if filter_input.has_focus:
+                table.focus()
+                event.stop()
