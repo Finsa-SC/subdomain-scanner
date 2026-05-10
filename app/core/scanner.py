@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, FIRST_COMPLETED
 from .validate import validate_subdomain, stats
 from .request import send_request
 
-def check_subdomain(domain: str):
+def check_subdomain_tui(domain: str, config, callback):
     config = get_config()
     sub_list = []
     healthy_ip = set()
@@ -65,70 +65,55 @@ def check_subdomain(domain: str):
     console.print()
 
     try:
-        with Live(console=console, refresh_per_second=4, transient=True) as live:
+        with ThreadPoolExecutor(max_workers=config.thread) as executor:
+            futures = {
+                executor.submit(validate_subdomain, sub, wildcard_baseline): sub
+                for sub in itertools.islice(subdomain_iter, config.thread * 4)
+            }
 
-            with ThreadPoolExecutor(max_workers=config.thread) as executor:
-                futures = {
-                    executor.submit(validate_subdomain, sub, wildcard_baseline): sub
-                    for sub in itertools.islice(subdomain_iter, config.thread * 4)
-                }
+            while futures:
+                done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
-                while futures:
-                    done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
+                for future in done:
+                    try:
+                        is_ok, ip, dict_sub = future.result()
+                        if dict_sub:
+                            dict_sub["is_live"] = is_ok
+                            dict_sub["server"] = (
+                                dict_sub.get("https", {}).get("server") or
+                                dict_sub.get("http", {}).get("server") or
+                                "Unknown"
+                            )
 
-                    for future in done:
-                        try:
-                            is_ok, ip, dict_sub = future.result()
-                            if ip and ip != "No IP":
-                                if is_ok:
-                                    healthy_ip.add(ip)
-                                else:
-                                    problem_ip.add(ip)
-                            if dict_sub:
-                                sub_list.append(dict_sub)
+                        if config.honeypot:
+                            from analysis import HoneypotAnalyzer
 
-                            processed += 1
+                            analyzer = HoneypotAnalyzer(dict_sub, config)
+                            score, label, _ = analyzer.run_all()
+                            dict_sub["is_honeypot"] = score > 0.5
+                            dict_sub["honeypot_score"] = score
+                            dict_sub["honeypot_label"] = label
+                        else:
+                            dict_sub["is_honeypot"] = score > 0.5
 
-                            elapsed = (datetime.now() - counting.start_time).total_seconds()
-                            speed = processed / elapsed if elapsed > 0 else 0
+                        callback(dict_sub)
+                    except Exception as e:
+                        pass
 
-                            status = Text()
-                            status.append("⚡ Scanning: ", style="cyan bold")
-                            status.append(f"{processed}", style="bold blue")
-                            status.append(" Subdomain •", style="dim")
-                            status.append(f"{elapsed:.2f}", style="yellow")
-                            status.append("•", style="dim")
-                            status.append(f"{speed:.2f} req/s", style="green")
+                    del futures[future]
 
-                            live.update(status)
-                        except Exception as e:
-                            console.print(f"[x] Error: {e}")
+                    next_sub = next(subdomain_iter, None)
+                    if next_sub:
+                        new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                        futures[new_f] = next_sub
 
-                        del futures[future]
-
-                        next_sub = next(subdomain_iter, None)
-                        if next_sub:
-                            new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
-                            futures[new_f] = next_sub
-
-                            if config.delay:
-                                time.sleep(config.delay)
+                        if config.delay:
+                            time.sleep(config.delay)
         counting.end()
         console.print()
 
-        if config.save_file_plain:
-            save_file_healthy(domain_root, healthy_ip)
-            save_file_problem(domain_root, problem_ip)
-        if config.save_file_json:
-            metadata = create_metadata(domain_root)
-            save_file_as_json(domain_root, sub_list, metadata)
-
-        if not config.quiet:
-            stats.summary(counting.total)
-
     except KeyboardInterrupt:
-        print("\n[!]Process stop by user...")
-        exit(0)
+        pass
 
 def check_wildcard(domain: str):
     config = get_config()

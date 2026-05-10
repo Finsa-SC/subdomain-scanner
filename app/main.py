@@ -2,7 +2,7 @@ from sys import stdin
 
 import fake_useragent
 
-from core import check_subdomain
+from core import check_subdomain_tui
 from models import set_config
 
 from dotenv import load_dotenv
@@ -103,7 +103,7 @@ def main():
         print("[*] Workflow: Wildcard Baseline (2 req) -> Validation (HTTP & HTTPS)")
         print("-" * 60)
 
-    set_config(ScanConfig(
+    config = ScanConfig(
         timeout=args.timeout,
         thread=args.thread,
         available=args.available,
@@ -125,17 +125,17 @@ def main():
         min_size=args.min_size,
         dns=args.dns,
         live=args.live
-    ))
+    )
 
     if args.redirect and not args.verbose:
         parser.error("redirect need verbose to show")
     if args.ip and not args.quiet:
         parser.error("Ip need quiet to show")
 
-    if args.domain:
-        check_subdomain(args.domain)
-    elif args.domain_list:
-        check_subdomain(args.domain_list)
+    domain_or_file = args.domain or args.domain_list
+
+    from tui import run_tui
+    run_tui(config, domain_or_file)
 
     if temp_path:
         try:
