@@ -68,10 +68,11 @@ def check_subdomain_tui(domain: str, callback):
                             from analysis import HoneypotAnalyzer
 
                             analyzer = HoneypotAnalyzer(dict_sub, config)
-                            score, label, _ = analyzer.run_all()
+                            score, label, findings = analyzer.run_all()
                             dict_sub["is_honeypot"] = score > 0.5
                             dict_sub["honeypot_score"] = score
                             dict_sub["honeypot_label"] = label
+                            dict_sub["honeypot_findings"] = findings
 
                         callback(dict_sub)
                     except Exception:
