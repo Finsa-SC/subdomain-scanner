@@ -1,6 +1,8 @@
 from textual.widgets import Static
 from rich.panel import Panel
 from rich.table import Table
+from rich.rule import Rule
+from rich.text import Text
 from .subdomain_table import _normalize_status
 
 class DetailPanel(Static):
@@ -37,17 +39,50 @@ class DetailPanel(Static):
         detail_table.add_row("  Title:", https.get("title", "-"))
 
 
-        if result.get("is_honeypot"):
-            detail_table.add_row("", "")
-            score = result.get("honeypot_score", 0)
-            label = result.get("honeypot_label", "")
-            detail_table.add_row(
-                "🍯 Honeypot:",
-                f"[yellow]{score * 100:.1f}% ({label})[/]"
-            )
+        score = result.get("honeypot_score")
+        if score is None:
+
+            score = result.get("is_honeypot", 0)
+            if isinstance(score, bool):
+                score = 1.0 if score else 0.0
+
+        label = result.get("honeypot_label", "")
+
+        filled = int(score * 10)
+        bar_char = ["░"] * 10
+
+        for i in range(filled):
+            if i < 2.5:
+                bar_char[i] = "[#00E0FF]█[/]"
+            elif i < 5:
+                bar_char[i] = "[#00C8FF]█[/]"
+            elif i < 7.5:
+                bar_char[i] = "[#00A3FF]█[/]"
+            else:
+                bar_char[i] = "[#0077BB]█[/]"
+
+        bar = "".join(bar_char)
+
+        if score >= 0.75:
+            text_color = "#F7768E"
+        elif score >= 0.5:
+            text_color = "#FFD700"
+        else:
+            text_color = "#565F89"
+
+        detail_table.add_row("", "")
+        detail_table.add_row("Honeypot:", f"{bar} [{text_color}] {score * 100:.0f}%[/]")
+
+        detail_table.add_row("Label:", f"[{text_color} bold]{label}[/]")
+        if result.get("wildcard"):
+            detail_table.add_row("Wildcard:", "[#00E0FF]Detected[/]")
+        else:
+            detail_table.add_row("Wildcard:", "")
+
 
         panel = Panel(
             detail_table,
             title=f"[bold #00E0FF]{result.get('subdomain', '')}[/]",
             border_style="#FFD700")
         self.update(panel)
+
