@@ -21,4 +21,4 @@ def get_subdomain(domain: str, use_all: bool = False, selected_source: str = Non
             for sub in source_map[s_name](domain):
                 if sub not in seen:
                     seen.add(sub)
-                    yield seen
+                    yield sub

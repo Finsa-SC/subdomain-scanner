@@ -1,8 +1,3 @@
-from sys import stdin
-
-import fake_useragent
-
-from core import check_subdomain_tui
 from models import set_config
 
 from dotenv import load_dotenv
@@ -52,13 +47,13 @@ def main():
     me_group.add_argument("-dL", "--domain-list", help="Validate multiple subdomain from file")
     input_group.add_argument("-s", "--source", type=str, help="Select source from domain track record")
 
-    # 2. CONFIGURATION (Resource & Performance)
+    # 2. CONFIGURATION
     config_group = parser.add_argument_group('CONFIGURATION')
     config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
-    config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 10)")
+    config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 5)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
     config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
-    config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or specific IP address")
+    config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
 
     # 3. PROFILING & ANALYSIS
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
@@ -66,19 +61,19 @@ def main():
     profile_group.add_argument("-t", "--title", action="store_true", help="Print page title")
     profile_group.add_argument("-x", "--header-tech", action="store_true", help="Show subdomain tech from header")
     profile_group.add_argument("-r", "--redirect", action="store_true", help="Show redirect information")
-    profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting to identify traps and fake services")
+    profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
     profile_group.add_argument("-a", "--aggressive", action="store_true",
                                help="Enable all informative flags (-v, -t, -x, etc.)")
 
     # 4. OUTPUT FILTERING
     filter_group = parser.add_argument_group('OUTPUT FILTERING')
     filter_group.add_argument("-A", "--available", action="store_true", help="Only show domain with 200 status code")
-    filter_group.add_argument("-L","--live", action="store_true", help="Only show domain with 200 status code")
+    filter_group.add_argument("-L", "--live", action="store_true", help="Only show domain with 200 status code")
     filter_group.add_argument("-w", "--no-wildcard", action="store_true", help="Skip if wildcard DNS detected")
     filter_group.add_argument("-q", "--quiet", action="store_true", help="Show clean output (only 200 status)")
     filter_group.add_argument("--ip", action="store_true", help="Show IP address instead of subdomain")
     filter_group.add_argument("--color", action="store_true", help="Color output text")
-    filter_group.add_argument("--min-size", type=int, help="Filter response larger than N bytes")
+    filter_group.add_argument("--min-size", type=int, help="Filter response smaller than N bytes")
     filter_group.add_argument("--max-size", type=int, help="Filter response larger than N bytes")
 
     # 5. EXPORT OPTIONS
@@ -97,11 +92,10 @@ def main():
     if args.aggressive:
         args.verbose = args.title = args.header_tech = args.redirect = args.honeypot = True
 
-    # Info simple
-    if not args.quiet:
-        print(f"[*] Starting validation with {args.thread} threads (Delay: {args.delay}s)")
-        print("[*] Workflow: Wildcard Baseline (2 req) -> Validation (HTTP & HTTPS)")
-        print("-" * 60)
+    if args.redirect and not args.verbose:
+        parser.error("redirect need verbose to show")
+    if args.ip and not args.quiet:
+        parser.error("Ip need quiet to show")
 
     config = ScanConfig(
         timeout=args.timeout,
@@ -127,10 +121,7 @@ def main():
         live=args.live
     )
 
-    if args.redirect and not args.verbose:
-        parser.error("redirect need verbose to show")
-    if args.ip and not args.quiet:
-        parser.error("Ip need quiet to show")
+    set_config(config)
 
     domain_or_file = args.domain or args.domain_list
 
