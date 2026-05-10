@@ -16,6 +16,7 @@ class SubdomainTable(DataTable):
         self.add_column("Status", width=10)
 
     def update_data(self, results):
+        current_row = self.cursor_row
         self.clear()
         self.result_mapping = list(results)
 
@@ -30,6 +31,19 @@ class SubdomainTable(DataTable):
             status = f"{h_status}/{s_status}"
 
             self.add_row(icon, subdomain, ip, server, status)
+
+        if current_row is not None and current_row < len(self.result_mapping):
+            self.move_cursor(row=current_row)
+
+    def append_row(self, r):
+        self.result_mapping.append(r)
+        icon = self.get_status_icon(r)
+        subdomain = self.truncate(r.get("subdomain", ""), 38)
+        ip = r.get("ip_address", "No IP")
+        server = self.truncate(r.get("server", "Unknown"), 10)
+        h_status = r.get("http", {}).get("status", "-")
+        s_status = r.get("https", {}).get("status", "-")
+        self.add_row(icon, subdomain, ip, server, f"{h_status}/{s_status}")
 
     @staticmethod
     def get_status_icon(result):
