@@ -4,6 +4,12 @@ from datetime import datetime
 import tldextract
 import os
 import itertools
+from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TextColumn, MofNCompleteColumn, TimeElapsedColumn
+from rich.console import Console
+from rich.live import Live
+from rich.text import Text
+from rich.panel import Panel
+from rich.table import Table
 
 from models import get_config
 from sources import get_subdomain
@@ -53,6 +59,11 @@ def check_subdomain_tui(domain: str, config, callback):
     counting = CountTime()
     counting.start()
 
+    console = Console()
+    processed = 0
+
+    console.print()
+
     try:
         with ThreadPoolExecutor(max_workers=config.thread) as executor:
             futures = {
@@ -99,6 +110,7 @@ def check_subdomain_tui(domain: str, config, callback):
                         if config.delay:
                             time.sleep(config.delay)
         counting.end()
+        console.print()
 
     except KeyboardInterrupt:
         pass
@@ -153,6 +165,12 @@ class CountTime:
 
     def end(self):
         self.end_time = datetime.now()
+
+    def get_elapsed(self):
+        if self.start_time is None:
+            return 0
+        end = self.end_time if self.end_time else datetime.now()
+        return (end - self.start_time).total_seconds()
 
     @property
     def total(self):

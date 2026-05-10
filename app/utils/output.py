@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlparse
@@ -60,6 +61,9 @@ def show_verbose(http_status, https_status, show_redir=False, http_redir=None, h
         return f"[ {', '.join(status)} ]"
     return ""
 
+def shorten(sub: str, max_lenght: int = 30):
+    return sub if len(sub) <= max_lenght else sub[:max_lenght - 3] + "..."
+
 def show_output(data: Mapping[str, Any], honeypotAnalyze):
     config = get_config()
 
@@ -118,7 +122,8 @@ def show_output(data: Mapping[str, Any], honeypotAnalyze):
     status = show_verbose(h_status, s_status, show_redir, h_redir, s_redir, is_verbose)
 
     output_buffer = []
-    output_line = (f"{sub: <40} | {ip_address: <15} | {server: <15} | "
+    short_sub = shorten(sub, 40)
+    output_line = (f"{short_sub: <40} | {ip_address: <15} | {server: <15} | "
               f"HTTP: {str(h_out): <3} ({f'{h_latency}ms)' if h_latency else 'N/A)': <7} | "
               f"HTTPS: {str(s_out): <3} ({f'{s_latency}ms)' if s_latency else 'N/A)': <7} {status}")
 
@@ -142,26 +147,29 @@ def show_output(data: Mapping[str, Any], honeypotAnalyze):
             or (show_available and is_up)
         )
         if should_print:
-            print("\n".join(output_buffer))
+            with print_lock:
+                print("\n".join(output_buffer))
 
         return is_up, ip_address
     return False, "No IP"
 
 
 print_ip = []
+print_lock = threading.Lock()
 def show_quiet(is_okay: int, sub: str = None, ip: str= None, show_ip: bool = False):
     if is_okay:
-        if show_ip:
-            is_reverse = is_cloudflare(ip)
-            if ip not in print_ip and not is_reverse:
-                print(ip)
-                print_ip.append(ip)
-        else:
-            print(sub)
+        with print_lock:
+            if show_ip:
+                is_reverse = is_cloudflare(ip)
+                if ip not in print_ip and not is_reverse:
+                    print(ip)
+                    print_ip.append(ip)
+            else:
+                print(sub)
 
 def get_title(http_title: str, https_title: str):
     def is_valid(title: str):
-        if not title or not isinstance(title, str):
+        if not title or not isinstance(title, str) or title == "-":
             return False
         for ignore_title in TITLE_IGNORE:
             if ignore_title in title.lower().strip():
