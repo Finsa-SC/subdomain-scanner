@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, FIRST_COMPLETED
 from .validate import validate_subdomain, stats
 from .request import send_request
 
-def check_subdomain(domain: str):
+def check_subdomain_tui(domain: str, config, callback):
     config = get_config()
     sub_list = []
     healthy_ip = set()
@@ -66,15 +66,28 @@ def check_subdomain(domain: str):
                 for future in done:
                     try:
                         is_ok, ip, dict_sub = future.result()
-                        if ip and ip != "No IP":
-                            if is_ok:
-                                healthy_ip.add(ip)
-                            else:
-                                problem_ip.add(ip)
                         if dict_sub:
-                            sub_list.append(dict_sub)
+                            dict_sub["is_live"] = is_ok
+                            dict_sub["server"] = (
+                                dict_sub.get("https", {}).get("server") or
+                                dict_sub.get("http", {}).get("server") or
+                                "Unknown"
+                            )
+
+                        if config.honeypot:
+                            from analysis import HoneypotAnalyzer
+
+                            analyzer = HoneypotAnalyzer(dict_sub, config)
+                            score, label, _ = analyzer.run_all()
+                            dict_sub["is_honeypot"] = score > 0.5
+                            dict_sub["honeypot_score"] = score
+                            dict_sub["honeypot_label"] = label
+                        else:
+                            dict_sub["is_honeypot"] = score > 0.5
+
+                        callback(dict_sub)
                     except Exception as e:
-                        print(f"[x] Error: {e}")
+                        pass
 
                     del futures[future]
 
@@ -87,19 +100,8 @@ def check_subdomain(domain: str):
                             time.sleep(config.delay)
         counting.end()
 
-        if config.save_file_plain:
-            save_file_healthy(domain_root, healthy_ip)
-            save_file_problem(domain_root, problem_ip)
-        if config.save_file_json:
-            metadata = create_metadata(domain_root)
-            save_file_as_json(domain_root, sub_list, metadata)
-
-        if not config.quiet:
-            stats.summary(counting.total)
-
     except KeyboardInterrupt:
-        print("\n[!]Process stop by user...")
-        exit(0)
+        pass
 
 def check_wildcard(domain: str):
     config = get_config()

@@ -1,7 +1,6 @@
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Header, Footer
-from screens.main_screen import MainScreen
+from .screens.main_screen import MainScreen
 
 class SubdomainScannerTUI(App):
     CSS_PATH = "styles.css"

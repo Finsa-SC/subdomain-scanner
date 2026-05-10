@@ -8,8 +8,8 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.binding import Binding
 from ..widgets.subdomain_table import SubdomainTable
 from ..widgets.detail_panel import DetailPanel
-from ..widgets.status_bar import StatusBar
-from ..parser import FilterParser
+from ..widgets.stats_bar import StatsBar
+from ..filter_parser import FilterParser
 import threading
 
 class MainScreen(Screen):
@@ -44,13 +44,13 @@ class MainScreen(Screen):
         with Container(id="main-container"):
             yield SubdomainTable(id="subdomain-table")
             yield DetailPanel(id="detail-panel")
-        yield StatusBar(id="status-bar")
+        yield StatsBar(id="status-bar")
 
     def on_mount(self):
         self.start_scan()
 
     def start_scan(self):
-        from core import check_subdomain_tui,
+        from core import check_subdomain_tui
 
         def scan_worker():
             check_subdomain_tui(
@@ -84,7 +84,7 @@ class MainScreen(Screen):
         table.update_data(self.filtered_results)
 
     def update_stats(self):
-        status_bar = self.query_one("#status-bar", StatusBar)
+        status_bar = self.query_one("#status-bar", StatsBar)
         status_bar.update_stats(
             total=len(self.results),
             filtered=len(self.filtered_results),
