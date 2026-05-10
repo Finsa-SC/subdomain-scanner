@@ -49,6 +49,7 @@ class MainScreen(Screen):
 
     def on_mount(self):
         self.start_scan()
+        self.query_one("#subdomain-table", SubdomainTable).focus()
 
     def start_scan(self):
         from core import check_subdomain_tui

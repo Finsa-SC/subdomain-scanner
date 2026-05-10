@@ -11,6 +11,7 @@ dependencies = [
     "pyperclip>=1.11.0",
     "python-dotenv>=1.2.2",
     "requests>=2.33.1",
+    "rich>=15.0.0",
     "textual>=8.2.5",
     "textual-dev>=1.8.0",
     "tldextract>=5.3.1",
