@@ -1,5 +1,3 @@
-from distutils.command import config
-
 from textual.app import ComposeResult
 from textual.events import Event
 from textual.screen import Screen
