@@ -1259,6 +1259,7 @@ dependencies = [
     { name = "textual" },
     { name = "textual-dev" },
     { name = "tldextract" },
+    { name = "urllib3" },
 ]
 
 [package.metadata]
@@ -1274,6 +1275,7 @@ requires-dist = [
     { name = "textual", specifier = ">=8.2.5" },
     { name = "textual-dev", specifier = ">=1.8.0" },
     { name = "tldextract", specifier = ">=5.3.1" },
+    { name = "urllib3", specifier = ">=2.6.3" },
 ]
 
 [[package]]
