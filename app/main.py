@@ -1,7 +1,5 @@
 from models import set_config
-
 from dotenv import load_dotenv
-
 from models.scan_config import ScanConfig
 import os
 import tempfile
@@ -30,9 +28,15 @@ def main():
             sys.argv.extend(["-dL", temp_path])
         except Exception as e:
             print(f"[x] Failed reading pipe data: {e}")
-            sys.exit(1)
-
-    banner = ""
+            sys.exit(1) 
+    
+    base_dir = os.path.dirname(os.path.dirname((os.path.abspath(__file__)))
+    banner_path = os.path.join(base_dir," assets", "banner.txt")
+    try:
+        open with(banner_path, 'r', encoding='utf-8') as file:
+            banner = file.read()
+    except FileNotFoundError:
+        banner = "[ Subv ]" 
     parser = argparse.ArgumentParser(
         prog="subv",
         description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions",
