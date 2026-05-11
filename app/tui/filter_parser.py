@@ -1,6 +1,6 @@
 import re
 import ipaddress
-from models import CLOUDFLARE_IPS
+from models import PROXY_IPS
 
 class FilterParser:
     def parse(self, query, results):
@@ -17,6 +17,9 @@ class FilterParser:
 
     def matches(self, query: str, result):
         query = query.lower()
+
+        if query.startswith("not "):
+            return not self.matches(query[4:], result)
 
         if "status:" in query:
             match = re.search(r'status:(\d+|forbidden|redirect)', query)
@@ -80,7 +83,7 @@ class FilterParser:
                     if ip_str and ip_str != "No IP":
                         try:
                             ip_obj = ipaddress.ip_address(ip_str)
-                            for network in CLOUDFLARE_IPS:
+                            for network in PROXY_IPS:
                                 if ip_obj in ipaddress.ip_network(network):
                                     proxy = True
                                     break
@@ -89,11 +92,9 @@ class FilterParser:
                     if not proxy:
                         return False
                 else:
-                    pattern = target.replace(".", r"\.").replace("*", r"\*")
-                    if not re.match(pattern, ip_str):
+                    pattern = target.replace(".", r"\.").replace("*", r".")
+                    if not re.fullmatch(pattern, ip_str):
                         return False
 
-        if query.startswith("not "):
-            return not self.matches(query[4:], result)
 
         return True
