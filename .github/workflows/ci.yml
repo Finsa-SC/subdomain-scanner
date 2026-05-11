@@ -2,9 +2,13 @@ name: FinSky Multi-OS Compatibility Test
 
 on:
   push:
-    branches: [ main, dev ]
-  pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Test compatibility'
+        required: false
+        default: 'Check compatibility after update'
 
 jobs:
   compatibility-test:
