@@ -62,7 +62,7 @@ class FilterParser:
                 targets = [x.strip() for x in match.group(1).split(",")]
                 server = (
                     self.http.get("server", "").lower() + " " +
-                    self.http.get("server", "").lower()
+                    self.https.get("server", "").lower()
                 ).lower()
 
                 if not any(target in server for target in targets):
@@ -180,6 +180,35 @@ class FilterParser:
                         except ValueError:
                             pass
 
+                if not matched:
+                    return False
+
+        if 'latency:' in query:
+            match = re.search(f'latency:([\d,-]+)', query)
+            if match:
+                targets = [x.strip() for x in match.group(1).split(",")]
+                h_lat = self.http.get("latency") or 0
+                s_lat = self.https.get("latency") or 0
+                matched = False
+                for target in targets:
+                    if "-" in target:
+                        try:
+                            min_lat, max_lat = map(int, target.split("-"))
+                            if (
+                                min_lat <= h_lat <= max_lat or
+                                min_lat <= s_lat <= max_lat
+                            ):
+                                matched = True
+                        except ValueError:
+                            pass
+                    else:
+                        try:
+                            exact = int(target)
+
+                            if h_lat == exact == s_lat:
+                                matched = True
+                        except ValueError:
+                            pass
                 if not matched:
                     return False
 

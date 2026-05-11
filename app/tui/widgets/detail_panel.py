@@ -72,7 +72,6 @@ class DetailPanel(Static):
 
         score = result.get("honeypot_score")
         if score is None:
-
             score = result.get("is_honeypot", 0)
             if isinstance(score, bool):
                 score = 1.0 if score else 0.0
