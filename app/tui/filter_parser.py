@@ -1,5 +1,6 @@
 import re
 import ipaddress
+from distutils.command.install import sys_key
 
 from models import PROXY_IPS
 
@@ -68,9 +69,28 @@ class FilterParser:
                 if not any(target in server for target in targets):
                     return False
 
+        if 'tech:' in query:
+            match = re.search(r'tech:([\w\s,-]+)', query)
+            if match:
+                targets = [x.strip() for x in match.group(1).split(",")]
+
+                h_tech = str(self.http.get("tech", ""))
+                s_tech = str(self.https.get("tech", ""))
+                h_keys = str(self.http.get("header_keys", ""))
+                s_keys = str(self.https.get("header_keys", ""))
+
+                tech_data = " ".join([
+                    h_tech,
+                    s_tech,
+                    h_keys,
+                    s_keys
+                ]).lower()
+
+                if not any(target in tech_data for target in targets):
+                    return False
+
         if 'title:' in query:
             match = re.search(r'title:([\w\s,-]+)', query)
-            matched = False
             if match:
                 targets = [x.strip() for x in match.group(1).split(",")]
 
