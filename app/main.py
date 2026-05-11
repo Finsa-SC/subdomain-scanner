@@ -29,11 +29,12 @@ def main():
         except Exception as e:
             print(f"[x] Failed reading pipe data: {e}")
             sys.exit(1) 
-    
-    base_dir = os.path.dirname(os.path.dirname((os.path.abspath(__file__)))
-    banner_path = os.path.join(base_dir," assets", "banner.txt")
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(current_dir)
+    banner_path = os.path.join(base_dir, "assets", "banner.txt")
     try:
-        open with(banner_path, 'r', encoding='utf-8') as file:
+        with open(banner_path, 'r', encoding='utf-8') as file:
             banner = file.read()
     except FileNotFoundError:
         banner = "[ Subv ]" 
@@ -57,6 +58,7 @@ def main():
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
     config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
+    config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
     # 3. OUTPUT FILTERING
     filter_group = parser.add_argument_group('OUTPUT FILTERING')
