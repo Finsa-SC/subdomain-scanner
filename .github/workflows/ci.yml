@@ -32,7 +32,7 @@ jobs:
       - name: Test Standard Pip Installation
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install .
 
       - name: Test Run (Standard)
         run: python app/main.py --help
