@@ -1,5 +1,6 @@
 import re
 import ipaddress
+
 from models import PROXY_IPS
 
 class FilterParser:
@@ -62,6 +63,30 @@ class FilterParser:
                 if not any(target in server for target in targets):
                     return False
 
+        if 'title:' in query:
+            match = re.search(r'title:([\w\s.*,-]+)', query)
+            matched = False
+            if match:
+                targets = [x.strip() for x in match.group(1).split(",")]
+
+                title = (
+                    result.get("http", {}).get("title", "-").lower() + " " +
+                    result.get("https", {}).get("title", "-").lower()
+                )
+
+                for target in targets:
+                    pattern = (
+                        target
+                        .replace(".", r"\.")
+                        .replace("*", ".*")
+                    )
+
+                    if re.match(pattern, title):
+                        matched = True
+                        break
+                if not matched:
+                    return False
+
         if 'honeypot:' in query:
             match = re.search(r'honeypot:([\w+,]+)', query)
             if match:
@@ -103,27 +128,31 @@ class FilterParser:
 
         if 'ip:' in query:
             match = re.search(r'ip:([\d.*,\w]+)', query)
+            matched = False
+
             if match:
-                target = match.group(1)
+                targets = [x.strip() for x in match.group(1).split(",")]
                 ip_str = result.get("ip_address", "")
 
-                if target == 'proxy':
-                    proxy = False
-                    if ip_str and ip_str != "No IP":
-                        try:
-                            ip_obj = ipaddress.ip_address(ip_str)
-                            for network in PROXY_IPS:
-                                if ip_obj in ipaddress.ip_network(network):
-                                    proxy = True
-                                    break
-                        except ValueError:
-                            pass
-                    if not proxy:
-                        return False
-                else:
-                    pattern = target.replace(".", r"\.").replace("*", ".*")
-                    if not re.fullmatch(pattern, ip_str):
-                        return False
-
-
+                for target in targets:
+                    if target == 'proxy':
+                        proxy = False
+                        if ip_str and ip_str != "No IP":
+                            try:
+                                ip_obj = ipaddress.ip_address(ip_str)
+                                for network in PROXY_IPS:
+                                    if ip_obj in ipaddress.ip_network(network):
+                                        proxy = True
+                                        matched = True
+                                        break
+                            except ValueError:
+                                pass
+                        if not proxy:
+                            return False
+                    else:
+                        pattern = target.replace(".", r"\.").replace("*", ".*")
+                        if re.fullmatch(pattern, ip_str):
+                            matched = True
+                if not matched:
+                    return False
         return True
