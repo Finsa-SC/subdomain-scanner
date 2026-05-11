@@ -82,6 +82,17 @@ class FilterParser:
                 if not any(target in title for target in targets):
                     return False
 
+        if 'wildcard:' in query:
+            match = re.search(f'wildcard:(true|false)', query)
+            if match:
+                target = match.group(1)
+                wildcard = result.get("wildcard", False)
+                if target == 'true' and not wildcard:
+                    return False
+                if target == 'false' and wildcard:
+                    return False
+
+
         if 'honeypot:' in query:
             match = re.search(r'honeypot:([\w+,]+)', query)
             if match:
