@@ -1,11 +1,8 @@
 from models import set_config
 from dotenv import load_dotenv
 from models.scan_config import ScanConfig
-import os
-import tempfile
-import argparse
-import sys
-
+from pathlib import Path
+import os, sys, argparse, tempfile, shutil
 
 ### Init env
 load_dotenv()
@@ -37,13 +34,14 @@ def main():
         with open(banner_path, 'r', encoding='utf-8') as file:
             banner = file.read()
     except FileNotFoundError:
-        banner = "[ Subv ]" 
+        banner = "[ Subv ]"
     parser = argparse.ArgumentParser(
         prog="subv",
         description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="[!] WARNING: Use with caution. Scanning will trigger logs on the target server."
     )
+
     # 1. INPUT ARGUMENTS
     input_group = parser.add_argument_group('INPUT ARGUMENTS')
     me_group = input_group.add_mutually_exclusive_group(required=True)
@@ -75,15 +73,24 @@ def main():
     export_group.add_argument("-o", "--output", action="store_true", help="Save result as plain list")
     export_group.add_argument("-oJ", "--output-json", action="store_true", help="Save result as JSON with detail")
 
-
     # 3. PROFILING & ANALYSIS
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
     profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
 
-    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
 
     if len(sys.argv) == 1:
         parser.print_help()
+        sys.exit(0)
+
+    # Program
+    parser.add_argument("--purge", action="store_true", help="Purge entire data in results directory")
+    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
+
+    #purge
+    if "--purge" in sys.argv:
+        target = Path("results")
+        shutil.rmtree(target, ignore_errors=True)
+        print("[✓] results directory purged")
         sys.exit(0)
 
     args = parser.parse_args()
