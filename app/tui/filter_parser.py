@@ -102,7 +102,7 @@ class FilterParser:
                     return False
 
         if 'wildcard:' in query:
-            match = re.search(f'wildcard:(true|false)', query)
+            match = re.search(r'wildcard:(true|false)', query)
             if match:
                 target = match.group(1)
                 wildcard = result.get("wildcard", False)
@@ -214,7 +214,7 @@ class FilterParser:
                     return False
 
         if 'latency:' in query:
-            match = re.search(f'latency:([\d,-]+)', query)
+            match = re.search(r'latency:([\d,-]+)', query)
             if match:
                 targets = [x.strip() for x in match.group(1).split(",")]
                 h_lat = self.http.get("latency") or 0
