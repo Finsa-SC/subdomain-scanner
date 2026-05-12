@@ -1,3 +1,4 @@
+from rich_pixels import FullcellRenderer
 from textual.screen import Screen
 from textual.widgets import Static
 from textual.containers import ScrollableContainer
@@ -34,6 +35,7 @@ class FullscreenDetail(Screen):
         self.query_one("#fullscreen-content", Static).update(
             self._build_content()
         )
+        self.refresh()
 
     def _build_content(self):
         r = self.result
@@ -104,7 +106,7 @@ class FullscreenDetail(Screen):
         cookies = _parse_cookies(http, https)
         if cookies:
             cookies_table = _make_table()
-            for name, val in cookies.values():
+            for name, val in cookies.items():
                 cookies_table.add_row(name, val[:60])
             sections.append(cookies_table)
         else:
@@ -189,6 +191,8 @@ class FullscreenDetail(Screen):
             success, path_or_err = take_screenshot(self.result)
             def _notify():
                 if success:
+                    self.result["screenshot"] = path_or_err
+                    self.query_one("#fullscreen-content", Static).update(self._build_content())
                     self.notify(f"✓ Saved: {path_or_err}", severity="information", timeout=5)
                 else:
                     self.notify(f"✗ Gagal: {path_or_err}", severity="error", timeout=4)

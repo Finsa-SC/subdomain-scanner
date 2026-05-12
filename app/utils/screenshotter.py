@@ -1,6 +1,7 @@
 from pathlib import Path
 from models.signatures import TITLE_IGNORE
 from .logger import get_logger
+import platform, os, subprocess
 
 log = get_logger("screenshotter")
 
@@ -66,12 +67,17 @@ def take_screenshot(result: dict) -> tuple[bool, str]:
             page = context.new_page()
 
             try:
-                page.goto(url=url, timeout=15000, wait_until="domcontentloaded")
+                page.goto(
+                    url=url,
+                    timeout=15000,
+                    wait_until="networkidle")
             except Exception:
                 pass
 
             page.screenshot(path=str(out_path), clip={"x": 0, "y": 0, "width": 1280, "height": 800})
             browser.close()
+
+            open_image_popup(str(out_path))
 
         log.info(f"Screenshot saved: {out_path}")
         return True, str(out_path)
@@ -79,3 +85,11 @@ def take_screenshot(result: dict) -> tuple[bool, str]:
         log.error(f"Screenshot failed for {subdomain}: {e}")
         return False, f"{e}"
 
+
+def open_image_popup(path: str):
+    if platform.system() == 'Linux':
+        subprocess.Popen(["xdg-open", path])
+    elif platform.system() == 'Darwin':
+        subprocess.run(["open", path])
+    elif platform.system() == 'Windows':
+        os.startfile(path)
