@@ -41,7 +41,7 @@ def _pick_url(result: dict) -> str:
         return f"https://{subdomain}"
     return f"http://{subdomain}"
 
-def take_screenshot(result: dict) -> tuple[bool, str]:
+def take_screenshot(result: dict):
     ok, reason = can_screenshot(result)
     if not ok:
         return False, reason
@@ -54,40 +54,25 @@ def take_screenshot(result: dict) -> tuple[bool, str]:
     out_path = screenshot_dir / f"{save_name}.png"
 
     try:
-        from playwright.sync_api import sync_playwright
+        p, browser = ensure_chromium()
 
-        with sync_playwright() as play:
-            browser = play.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-            context = browser.new_context(
-                viewport={"width": 1280, "height": 800},
-                ignore_https_errors=True,
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                ),
-            )
-            page = context.new_page()
+        page = browser.new_page()
 
-            try:
-                page.goto(
-                    url=url,
-                    timeout=15000,
-                    wait_until="networkidle")
-            except Exception:
-                pass
+        page.goto(url, timeout=15000, wait_until="domcontentloaded")
 
-            page.screenshot(path=str(out_path), clip={"x": 0, "y": 0, "width": 1280, "height": 800})
-            browser.close()
+        page.wait_for_timeout(2000)
 
-            open_image_popup(str(out_path))
+        page.screenshot(path=str(out_path), full_page=True)
 
-        log.info(f"Screenshot saved: {out_path}")
+        browser.close()
+        p.stop()
+
+        open_image_popup(str(out_path))
+
         return True, str(out_path)
-    except Exception as e:
-        log.error(f"Screenshot failed for {subdomain}: {e}")
-        return False, f"{e}"
 
+    except Exception as e:
+        return False, str(e)
 
 def open_image_popup(path: str):
     if platform.system() == 'Linux':
@@ -98,11 +83,11 @@ def open_image_popup(path: str):
         os.startfile(path)
 
 def ensure_chromium():
+    from playwright.sync_api import sync_playwright
     try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as play:
-            play.chromium.launch()
+        play = sync_playwright().start()
+        browser = play.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        return play, browser
     except Exception:
         log.error("Chromium not found! Installing...")
         subprocess.run(
@@ -110,3 +95,6 @@ def ensure_chromium():
             check=True
         )
         log.info("Chromium installed!")
+        play = sync_playwright().start()
+        browser = play.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        return play, browser
