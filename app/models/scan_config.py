@@ -22,6 +22,7 @@ class ScanConfig:
 
     # --- Dns --- #
     dns: str | None = None
+    port: str | None = None
 
     # --- Save --- #
     save_file_plain: bool = False

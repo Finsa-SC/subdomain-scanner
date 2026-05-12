@@ -48,6 +48,7 @@ def main():
     me_group.add_argument("-d", "--domain", help="Search for single domain")
     me_group.add_argument("-dL", "--domain-list", help="Validate multiple subdomain from file")
     input_group.add_argument("-s", "--source", type=str, help="Select source from domain track record")
+    input_group.add_argument("-p", "--port", type=str, help="Scan port with full hand-shake method")
 
     # 2. CONFIGURATION
     config_group = parser.add_argument_group('CONFIGURATION')
@@ -108,6 +109,7 @@ def main():
         honeypot=args.honeypot,
         screenshot=args.screenshot,
         dns=args.dns,
+        port=args.port
     )
 
     set_config(config)
