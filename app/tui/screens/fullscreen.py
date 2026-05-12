@@ -224,8 +224,9 @@ def _status_colored(status: int):
 
 def _parse_cookies(http: dict, https: dict) -> dict:
     cookies = {}
+
     for proto in (http, https):
-        header = proto.get("tech") or {}
+        header = proto.get("raw_header") or {}
         for k, v in header.items():
             if k.lower() == 'set-cookies':
                 parts = str(v).split(";")[0]
