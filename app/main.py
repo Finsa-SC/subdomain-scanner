@@ -1,4 +1,5 @@
 from models import set_config
+from utils import parse_port
 from dotenv import load_dotenv
 from models.scan_config import ScanConfig
 from pathlib import Path
@@ -109,7 +110,7 @@ def main():
         honeypot=args.honeypot,
         screenshot=args.screenshot,
         dns=args.dns,
-        port=args.port
+        port=parse_port(args.port)
     )
 
     set_config(config)
