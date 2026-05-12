@@ -48,7 +48,7 @@ def main():
     me_group.add_argument("-d", "--domain", help="Search for single domain")
     me_group.add_argument("-dL", "--domain-list", help="Validate multiple subdomain from file")
     input_group.add_argument("-s", "--source", type=str, help="Select source from domain track record")
-    input_group.add_argument("-p", "--port", type=str, help="Scan port with full hand-shake method")
+    input_group.add_argument("-p", "--port", type=str, help="Scan specific ports (e.g. 80,443,1-1000)")
 
     # 2. CONFIGURATION
     config_group = parser.add_argument_group('CONFIGURATION')
