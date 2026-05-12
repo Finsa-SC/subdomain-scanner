@@ -1,4 +1,7 @@
 from pathlib import Path
+
+import sys
+
 from models.signatures import TITLE_IGNORE
 from .logger import get_logger
 import platform, os, subprocess
@@ -93,3 +96,17 @@ def open_image_popup(path: str):
         subprocess.run(["open", path])
     elif platform.system() == 'Windows':
         os.startfile(path)
+
+def ensure_chromium():
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as play:
+            play.chromium.launch()
+    except Exception:
+        log.error("Chromium not found! Installing...")
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=True
+        )
+        log.info("Chromium installed!")

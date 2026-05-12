@@ -195,7 +195,7 @@ class FullscreenDetail(Screen):
                     self.query_one("#fullscreen-content", Static).update(self._build_content())
                     self.notify(f"✓ Saved: {path_or_err}", severity="information", timeout=5)
                 else:
-                    self.notify(f"✗ Gagal: {path_or_err}", severity="error", timeout=4)
+                    self.notify(f"✗ Failed: {path_or_err}", severity="error", timeout=4)
             self.app.call_from_thread(_notify)
 
         threading.Thread(target=_do, daemon=True).start()
