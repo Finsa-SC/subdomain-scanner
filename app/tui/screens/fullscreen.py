@@ -10,7 +10,7 @@ from rich.text import Text
 from rich.rule import Rule
 from ..widgets.subdomain_table import _normalize_status
 from ..widgets.detail_panel import _format_redirect
-import threading
+from utils import do_screenshot
 
 
 class FullscreenDetail(Screen):
@@ -194,26 +194,18 @@ class FullscreenDetail(Screen):
         )
 
     def action_screenshot(self):
-        from utils import take_screenshot, can_screenshot
+        def refresh():
+            self.query_one(
+                "#fullscreen-conten",
+                Static
+            ).update(self._build_content())
 
-        ok, reason = can_screenshot(self.result)
-        if not ok:
-            self.notify(f"Can't take screenshot: {reason}", severity="error", timeout=4)
-            return
-
-        def _do():
-            success, path_or_err = take_screenshot(self.result, open_image=True)
-            def _notify():
-                if success:
-                    self.result["screenshot"] = path_or_err
-                    self.query_one("#fullscreen-content", Static).update(self._build_content())
-                    self.notify(f"✓ Saved: {path_or_err}", severity="information", timeout=5)
-                else:
-                    self.notify(f"✗ Failed: {path_or_err}", severity="error", timeout=4)
-            self.app.call_from_thread(_notify)
-
-        threading.Thread(target=_do, daemon=True).start()
-        self.notify("Taking screenshot...", timeout=2)
+        do_screenshot(
+            app=self.app,
+            result=self.result,
+            notify=self.notify,
+            callback=refresh
+        )
 
     def action_dismiss_screen(self):
             self.app.pop_screen()

@@ -1,14 +1,14 @@
-from textual.app import ComposeResult
-from textual.events import Event
 from textual.screen import Screen
-from textual.widgets import Static, Input
-from textual.containers import Container, Horizontal, Vertical
+from textual.widgets import Input
+from textual.containers import Container
 from textual.binding import Binding
 from ..widgets.subdomain_table import SubdomainTable
 from ..widgets.detail_panel import DetailPanel
 from ..widgets.stats_bar import StatsBar
 from ..filter_parser import FilterParser
 import threading
+from utils import can_screenshot, take_screenshot, do_screenshot
+
 
 class MainScreen(Screen):
     BINDINGS = [
@@ -20,6 +20,7 @@ class MainScreen(Screen):
         Binding("c", "copy_subdomain", "Copy"),
         Binding("b", "open_browser", "Open"),
         Binding("r", "refresh", "Refresh"),
+        Binding("s", "screenshot", "Screenshot"),
         Binding("escape", "close_detail", "Close"),
         Binding("f1", "show_help", "Help"),
     ]
@@ -135,6 +136,23 @@ class MainScreen(Screen):
 
     def action_export_all(self):
         self.notify(f"Exported: {len(self.filtered_results)} results")
+
+    def action_screenshot(self):
+        table = self.query_one("#subdomain-table", SubdomainTable)
+        selected = table.get_selected_row()
+
+        if not selected:
+            self.notify(
+                "Select a subdomain first",
+                severity="warning"
+            )
+            return
+
+        do_screenshot(
+            app=self.app,
+            result=selected,
+            notify=self.notify
+        )
 
     def action_copy_subdomain(self):
         table = self.query_one("#subdomain-table", SubdomainTable)

@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import threading
 import sys
 
 from models.signatures import TITLE_IGNORE
@@ -21,12 +21,9 @@ def can_screenshot(result: dict) -> tuple[bool, str]:
     h_title = (http.get("title") or "").lower().strip()
     s_title = (https.get("title") or "").lower().strip()
 
-    if h_status != 200 and s_status != 200:
+    live_host = {200, 301, 302, 307, 308}
+    if h_status not in live_host and s_status not in live_host:
         return False, f"Not a live host (HTTP: {h_status}, HTTPS: {s_status})"
-
-    size = h_size if h_status == 200 else s_size
-    if not size or size <= 100:
-        return False, f"Response is too small ({size} bytes)"
 
     title = h_title if h_status == 200 else s_title
     for junk in TITLE_IGNORE:
@@ -96,3 +93,48 @@ def ensure_chromium():
         play = sync_playwright().start()
         browser = play.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
         return play, browser
+
+def do_screenshot(app, result: dict, notify=None, callback=None):
+        from utils import take_screenshot, can_screenshot
+
+        ok, reason = can_screenshot(result)
+        if not ok:
+            if notify:
+                notify(
+                    f"Can't take screenshot: {reason}",
+                    severity="error",
+                    timeout=4
+                )
+            return
+
+        def _do():
+            success, path_or_err = take_screenshot(
+                result,
+                open_image=True
+            )
+
+            def _notify():
+                if success:
+                    result["screenshot"] = path_or_err
+
+                    if callback:
+                        callback()
+
+                    if notify:
+                        notify(
+                            f"✓ Saved: {path_or_err}",
+                            severity="information",
+                            timeout=5
+                        )
+                else:
+                    if notify:
+                        notify(
+                            f"✗ Failed: {path_or_err}",
+                            severity="error",
+                            timeout=4
+                        )
+            app.call_from_thread(_notify)
+
+        threading.Thread(target=_do, daemon=True).start()
+        if notify:
+            notify("Taking screenshot...", timeout=2)
