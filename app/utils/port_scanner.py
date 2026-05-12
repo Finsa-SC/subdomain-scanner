@@ -5,7 +5,8 @@ log = get_logger("port_scanner")
 
 def parse_port(ports: str) -> set:
     result = set()
-
+    if not ports:
+        return result
     for part in ports.split(","):
         part = part.strip()
         try:
@@ -43,6 +44,8 @@ def scan_port(host: str, ports: set[int], timeout: float = 1.0) -> dict[int, str
                 code = sock.connect_ex((host, port))
                 if code == 0:
                     result[port] = 'open'
+                elif code in (11, 111, 61, 10061):
+                    continue
                 else:
                     result[port] = 'filtered'
         except socket.timeout:

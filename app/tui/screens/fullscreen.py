@@ -101,6 +101,20 @@ class FullscreenDetail(Screen):
         st.add_row("Body Hash", https.get("body_hash", "-") or "-")
         sections.append(st)
 
+        # Ports
+        ports = r.get("ports")
+        if ports:
+            sections.append(_section_rule("Ports"))
+            port_table = _make_table()
+            for port, status in sorted(ports.items()):
+                if status == "open":
+                    status_text = f"[#73DACA]{status}[/]"
+                else:
+                    status_text = f"[#FFD700]{status}[/]"
+
+                port_table.add_row(f"{port}/tcp", status_text)
+            sections.append(port_table)
+
         # Cookies
         sections.append(_section_rule("Cookies"))
         cookies = _parse_cookies(http, https)
