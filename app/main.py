@@ -76,6 +76,7 @@ def main():
     # 3. PROFILING & ANALYSIS
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
     profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
+    profile_group.add_argument("--screenshot", action="store_true", help="Take screenshot to each subdomain with 200 status code")
 
 
     if len(sys.argv) == 1:
@@ -105,8 +106,7 @@ def main():
         source=args.source,
         all_resource=args.all,
         honeypot=args.honeypot,
-        max_size=args.max_size,
-        min_size=args.min_size,
+        screenshot=args.screenshot,
         dns=args.dns,
     )
 

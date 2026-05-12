@@ -184,7 +184,7 @@ class FullscreenDetail(Screen):
 
         ok, reason = can_screenshot(self.result)
         if not ok:
-            self.notify(f"Cat't take screenshot: {reason}", severity="error", timeout=4)
+            self.notify(f"Can't take screenshot: {reason}", severity="error", timeout=4)
             return
 
         def _do():

@@ -16,8 +16,9 @@ class ScanConfig:
     min_size: int | None = None
     max_size: int | None = None
 
-    # --- Honeypot --- #
+    # --- Profiling --- #
     honeypot: bool = False
+    screenshot: bool = False
 
     # --- Dns --- #
     dns: str | None = None

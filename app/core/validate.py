@@ -111,7 +111,7 @@ def validate_subdomain(sub, wildcard_baseline):
                 "latency": http_latency,
                 "redir": http_redir,
                 "tech": detect_tech(http_raw_header),
-                "raw_header": https_raw_header,
+                "raw_header": http_raw_header,
                 "body_hash": http_hash,
                 "header_keys": http_keys
             },
@@ -132,6 +132,18 @@ def validate_subdomain(sub, wildcard_baseline):
         }
 
         status_ok = 200 in [http_status, https_status]
+
+        if config.screenshot:
+            from utils import take_screenshot, can_screenshot
+            ok, reason = can_screenshot(data)
+            if ok:
+                success, path_or_err = take_screenshot(data)
+                if success:
+                    data["screenshot"] = path_or_err
+                else:
+                    log.error(path_or_err)
+            else:
+                log.error(f"Can't take screenshot: {reason}")
 
         return status_ok, ip_address, data
     except Exception as e:
