@@ -119,9 +119,13 @@ class MainScreen(Screen):
             self.detail_visible = False
 
     def action_toggle_fullscreen(self):
-        if self.detail_visible:
-            self.detail_fullscreen = not self.detail_fullscreen
-            self.notify("Fullscreen mode coming soon!")
+        table = self.query_one("#subdomain-table", SubdomainTable)
+        selected = table.get_selected_row()
+        if selected:
+            from .fullscreen import FullscreenDetail
+            self.app.push_screen(FullscreenDetail(selected))
+        else:
+            self.notify("Select a subdomain first", severity="warning")
 
     def action_export_selected(self):
         table = self.query_one("#subdomain-table", SubdomainTable)

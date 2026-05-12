@@ -73,3 +73,9 @@ DataTable > .datatable--stripe {
 .status-redirect { color: #BB9AF7; }
 .status-dead { color: #565F89; }
 .status-honeypot { color: #BB9AF7; text-style: bold; }
+
+#fullscreen-scroll {
+    height: 1fr;
+    background: #0B0E14;
+    padding: 1 2;
+}
