@@ -41,7 +41,7 @@ def _pick_url(result: dict) -> str:
         return f"https://{subdomain}"
     return f"http://{subdomain}"
 
-def take_screenshot(result: dict):
+def take_screenshot(result: dict, open_image: bool = False):
     ok, reason = can_screenshot(result)
     if not ok:
         return False, reason
@@ -57,17 +57,15 @@ def take_screenshot(result: dict):
         p, browser = ensure_chromium()
 
         page = browser.new_page()
-
         page.goto(url, timeout=15000, wait_until="domcontentloaded")
-
         page.wait_for_timeout(2000)
-
         page.screenshot(path=str(out_path), full_page=True)
 
         browser.close()
         p.stop()
 
-        open_image_popup(str(out_path))
+        if open_image:
+            open_image_popup(str(out_path))
 
         return True, str(out_path)
 

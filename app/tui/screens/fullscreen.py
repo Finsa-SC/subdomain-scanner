@@ -188,7 +188,7 @@ class FullscreenDetail(Screen):
             return
 
         def _do():
-            success, path_or_err = take_screenshot(self.result)
+            success, path_or_err = take_screenshot(self.result, open_image=True)
             def _notify():
                 if success:
                     self.result["screenshot"] = path_or_err
