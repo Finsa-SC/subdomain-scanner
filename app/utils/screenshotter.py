@@ -1,28 +1,27 @@
-from idlelib import browser
 from pathlib import Path
 from models.signatures import TITLE_IGNORE
 from .logger import get_logger
 
 log = get_logger("screenshotter")
 
-screenshot_dir = Path("result") / "screenshots"
+screenshot_dir = Path("results") / "screenshots"
 
 def can_screenshot(result: dict) -> tuple[bool, str]:
     http = result.get("http", {})
     https = result.get("https", {})
 
     h_status = http.get("status")
-    s_status = http.get("status")
+    s_status = https.get("status")
     h_size = http.get("size")
     s_size = https.get("size")
-    h_title = http.get("title").lower().strip()
-    s_title = https.get("title").lower().strip()
+    h_title = (http.get("title") or "").lower().strip()
+    s_title = (https.get("title") or "").lower().strip()
 
     if h_status != 200 and s_status != 200:
         return False, f"Not a live host (HTTP: {h_status}, HTTPS: {s_status})"
 
     size = h_size if h_status == 200 else s_size
-    if size <= 100:
+    if not size or size <= 100:
         return False, f"Response is too small ({size} bytes)"
 
     title = h_title if h_status == 200 else s_title
@@ -44,11 +43,11 @@ def take_screenshot(result: dict) -> tuple[bool, str]:
         return False, reason
 
     subdomain = result.get("subdomain", "")
-    url = _pick_url(subdomain)
+    url = _pick_url(result)
 
     save_name = subdomain.replace(".", "_").replace("/", "_")
-    screenshot_dir.makedir(parent=True, exist_ok=True)
-    out_path = screenshot_dir / save_name
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    out_path = screenshot_dir / f"{save_name}.png"
 
     try:
         from playwright.sync_api import sync_playwright
