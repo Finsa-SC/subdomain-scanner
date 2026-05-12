@@ -33,15 +33,20 @@ def parse_port(ports: str) -> set:
 
     return result
 
-def scan_port(host: str, ports: set[int], timeout: float = 1.0):
+def scan_port(host: str, ports: set[int], timeout: float = 1.0) -> dict[int, str]:
     result = {}
 
     for port in ports:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(timeout)
-                if sock.connect_ex((host, port)) == 0:
+                code = sock.connect_ex((host, port))
+                if code == 0:
                     result[port] = 'open'
+                else:
+                    result[port] = 'filtered'
+        except socket.timeout:
+            result[port] = 'filtered'
         except Exception:
             continue
     return result

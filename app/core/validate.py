@@ -133,6 +133,12 @@ def validate_subdomain(sub, wildcard_baseline):
 
         status_ok = 200 in [http_status, https_status]
 
+        if config.port:
+            from utils import scan_port
+            open_ports = scan_port(sub, config.port)
+            if open_ports:
+                data["ports"] = open_ports
+
         if config.screenshot:
             from utils import take_screenshot, can_screenshot
             ok, reason = can_screenshot(data)
