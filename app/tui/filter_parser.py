@@ -1,6 +1,5 @@
 import re
 import ipaddress
-from distutils.command.install import sys_key
 
 from models import PROXY_IPS
 
