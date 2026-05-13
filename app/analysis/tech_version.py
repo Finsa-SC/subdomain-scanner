@@ -224,3 +224,9 @@ def detect_version(result: dict, timeout: float = 8.0) -> dict:
         "summary": summary,
         "body_fetched": body is not None,
     }
+
+def _source_priority(source: str) -> int:
+    for key, priority in SOURCE_PRIORITY.items():
+        if key in source.lower():
+            return priority
+    return 5
