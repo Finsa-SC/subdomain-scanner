@@ -316,17 +316,41 @@ class FullscreenDetail(Screen):
         if status_obj and status_obj.value == 'done':
             data_content = tech_module.get('data')
             if data_content and 'summary' in data_content:
-                new_tech_list = set()
+                new_tech_list = []
                 for tech_name, version in data_content['summary'].items():
                     if version and version != 0:
-                        new_tech_list.add(f"{tech_name}: {version}")
+                        new_tech_list.append(f"{tech_name}: {version}")
                     else:
-                        new_tech_list.add(tech_name)
+                        new_tech_list.append(tech_name)
 
                 for proto in ('http', 'https'):
+                    if proto not in self.result:
+                        continue
                     current_tech = self.result[proto].get('tech') or []
-                    combined_set = set(current_tech) | set(new_tech_list)
-                    self.result[proto]['tech'] = list(combined_set)
+                    combined = list(set(current_tech + new_tech_list))
+                    final_list = []
+                    for item in combined:
+                        is_redundant = False
+                        clean_item = item.lower().replace(" ", "")
+                        merk_item = clean_item.split(':')[0].split('/')[0].strip()
+
+                        for other in combined:
+                            if item == other: continue
+
+                            clean_other = other.lower().replace(" ", "")
+                            merk_other = clean_other.split(':')[0].split('/')[0].strip()
+
+                            if merk_item == merk_other:
+                                if (':' not in item and '/' not in item) and (':' in other or '/' in other):
+                                    is_redundant = True
+                                    break
+
+                                if len(other) > len(item):
+                                    is_redundant = True
+                                    break
+                        if not is_redundant:
+                            final_list.append(item)
+                    self.result[proto]['tech'] = sorted(final_list)
 
     def _refresh_detail(self):
         try:
