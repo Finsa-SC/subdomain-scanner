@@ -1,11 +1,13 @@
 from urllib.parse import urlparse, urljoin
+
+from curl_cffi import requests
 import mmh3, hashlib, base64, re
-from curl_cffi import requests as req
+import urllib3
 
 from .logger import get_logger
+from core import StealthMode
 
 log = get_logger("favicon")
-
 KNOWN_FAVICON_HASHES: dict[int, str] = {
     # CMS
     -1255853263: "WordPress",
@@ -39,11 +41,10 @@ KNOWN_FAVICON_HASHES: dict[int, str] = {
     -1424337732: "Portainer",
     1455260951: "Rancher",
 
-    # Cloud / Infrastructure
+    # CI/CD & Dev tools
     -1983527995: "Jenkins",
     1484180222: "GitLab",
     -1885111544: "Gitea",
-    116323821: "Gogs",
     1768835265: "Nexus Repository",
     -1113428726: "SonarQube",
 
@@ -52,18 +53,103 @@ KNOWN_FAVICON_HASHES: dict[int, str] = {
     -728578634: "Cowrie (Honeypot)",
 }
 
-def _pick_base_url(subdomain: str, code: int) -> str:
-    if code in (200, 301, 302, 307, 308):
-        return f"http://{subdomain}"
+
+def _pick_base_url(result) -> str:
+    subdomain = result.get("subdomain", "")
+    if result.get("https", {}).get("status") in (200, 301, 302, 307, 308):
+        return f"https://{subdomain}"
     return f"http://{subdomain}"
 
-def _fetch_bytes(url: str, timeout: float = 5.0) -> bytes | None:
+def _fetch_content(url: str, timeout: float = 5.0):
+    parsed = urlparse(url)
+    proto = parsed.scheme
+    host = parsed.netloc
+    path = parsed.path
+
+    urllib3.disable_warnings()
+    stealth = StealthMode()
+    headers, engine = stealth.get_payload()
     try:
-        res = req.get(
-            url,
+        res = requests.get(
+            url=url,
             timeout=timeout,
-            verify=False,
-            allow_redirects=True
+            headers=headers,
+            impersonate=engine,
+            allow_redirects=True,
+            verify=False
         )
-    except:
-        ...
+        ctype = res.headers.get("Content-Type", "")
+        if res.status_code == 200 and res.content:
+            return res.content, ctype
+        return None, ctype
+    except Exception as e:
+        log.debug(f"_fetch_content failed {url}: {e}")
+        return None, ""
+
+def _find_favicon_in_html(html: str, base_url: str) -> str | None:
+    p1 = r'<link[^>]+rel=["\'](?:shortcut\s+)?icon["\'][^>]*href=["\']([^"\']+)["\']'
+    p2 = r'<link[^>]+href=["\']([^"\']+)["\'][^>]*rel=["\'](?:shortcut\s+)?icon["\']'
+
+    match = re.findall(p1, html, re.I) + re.findall(p2, html, re.I)
+    if not match:
+        return None
+    return urljoin(base_url, match[0].strip())
+
+def _mm3_hash(data: bytes) -> int:
+    return mmh3.hash(base64.encodebytes(data))
+
+def fetch_favicon(result: dict, timeout: float = 5.0) -> dict:
+    subdomain = result.get("subdomain", "")
+    base_url = _pick_base_url(result)
+
+    out = {
+        "found": False, "url": None,
+        "hash_mmh3": None, "hash_md5": None,
+        "size": 0, "matched": None,
+        "shodan_query": None, "error": None,
+    }
+
+    favicon_url = urljoin(base_url, "/favicon.ico")
+    data, ctype = _fetch_content(favicon_url, timeout)
+
+    is_invalid = not data or (data and b"<html" in data[:500].lower())
+
+    if is_invalid:
+        log.debug(f"{subdomain}: /favicon.ico Empty, trying parse HTML...")
+        html_bytes, html_type = _fetch_content(base_url, timeout)
+
+        if not html_bytes:
+            return out
+
+        if not html_bytes or "html" not in (html_type or "").lower():
+            return out
+
+        html_str = html_bytes.decode("utf-8", errors="ignore")
+        found_url = _find_favicon_in_html(html_str, base_url)
+        if found_url:
+            data, _ = _fetch_content(found_url, timeout)
+            if data and (len(data) < 100 or data[:4] == b"<html"):
+                data = None
+            if data:
+                favicon_url = found_url
+
+    if not data:
+        out["error"] = "Favicon not found (tried /favicon.ico and HTML parse)"
+        return out
+
+    mmh3_hash = _mm3_hash(data)
+    md5_hash = hashlib.md5(data).hexdigest()
+    match = KNOWN_FAVICON_HASHES.get(mmh3_hash)
+
+    out.update({
+        "found":        True,
+        "url":          favicon_url,
+        "hash_mmh3":    mmh3_hash,
+        "hash_md5":     md5_hash,
+        "size":         len(data),
+        "matched":      match,
+        "shodan_query": f"http.favicon.hash:{mmh3_hash}",
+    })
+
+    log.info(f"{subdomain}: favicon mmh3={mmh3_hash} matched={match or 'unknown'}")
+    return out
