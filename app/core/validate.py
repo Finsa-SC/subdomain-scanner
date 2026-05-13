@@ -11,6 +11,32 @@ import time
 
 log = get_logger("validate")
 
+TECH_SIGNATURES = {
+    "Cloudflare": ["cloudflare", "cf-ray"],
+    "PHP": ["x-powered-by: php", "php/"],
+    "WordPress": ["wordpress", "wp-"],
+    "Nginx": ["nginx"],
+    "Apache": ["apache"],
+    "Laravel": ["laravel_session", "laravel"],
+    "Django": ["csrftoken"],
+    "ASP.NET": ["x-aspnet-version", "x-powered-by: asp.net"],
+    "Node.js": ["x-powered-by: express"],
+    "Varnish": ["x-varnish", "via: varnish"],
+    "IIS": ["microsoft-iis"],
+}
+
+def _detech_tech(header: dict) -> list[str]:
+    if not header:
+        return []
+    header_str = " ".join(
+        f"{k.lower()}: {v.lower()}" for k, v in header.items()
+    )
+    return sorted(
+        name for name, kws in TECH_SIGNATURES.items()
+        if any(kw in header_str for kw in kws)
+    )
+
+
 def validate_subdomain(sub, wildcard_baseline):
     config = get_config()
 
@@ -25,8 +51,8 @@ def validate_subdomain(sub, wildcard_baseline):
 
         custom_dns = config.dns
 
-        dict_http = send_request("http", sub, config.timeout, custom_dns)
-        dict_https = send_request("https", sub, config.timeout, custom_dns)
+        http_res, http_err = send_request("http", sub, config.timeout, custom_dns)
+        https_res, https_err = send_request("https", sub, config.timeout, custom_dns)
 
         h = dict_http if dict_http else {}
         s = dict_https if dict_https else {}
