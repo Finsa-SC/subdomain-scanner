@@ -81,13 +81,9 @@ class MainScreen(Screen):
         table = self.query_one("#subdomain-table", SubdomainTable)
 
         if not query.strip():
-            new_result = self.results[self._rendered_count:]
-            for r in new_result:
-                table.append_row(r)
-            self._rendered_count = len(self.results)
+            table.update_data(self.results)
             self.filtered_results = self.results.copy()
         else:
-            self._rendered_count = 0
             self.filtered_results = self.parser.parse(query, self.results)
             table.update_data(self.filtered_results)
 
