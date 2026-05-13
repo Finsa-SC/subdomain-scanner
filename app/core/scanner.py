@@ -52,6 +52,7 @@ def check_subdomain_tui(domain: str, callback):
             while futures:
                 done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
+                from analysis import HoneypotAnalyzer
                 for future in done:
                     try:
                         is_ok, ip, dict_sub = future.result()
@@ -65,7 +66,6 @@ def check_subdomain_tui(domain: str, callback):
                                 "Unknown"
                             )
 
-                            from analysis import HoneypotAnalyzer
 
                             analyzer = HoneypotAnalyzer(dict_sub, config)
                             score, label, findings = analyzer.run_all()

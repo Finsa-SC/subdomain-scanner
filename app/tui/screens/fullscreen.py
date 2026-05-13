@@ -11,8 +11,9 @@ from rich.text import Text
 from rich.rule import Rule
 from ..widgets.subdomain_table import _normalize_status
 from ..widgets.detail_panel import _format_redirect
-from utils import do_screenshot, parse_port, scan_port
+from utils import do_screenshot, parse_port, scan_port, get_logger
 
+log = get_logger("fullscreen")
 
 class FullscreenDetail(Screen):
     BINDINGS = [
@@ -20,7 +21,8 @@ class FullscreenDetail(Screen):
         Binding("escape", "dismiss_screen", "Close"),
         Binding("q", "dismiss_screen", "Close"),
         Binding("s", "screenshot", "Screenshot"),
-        Binding("p", "scan_port", "Scan Ports")
+        Binding("p", "scan_port", "Scan Ports"),
+        Binding("x", "deep_scan", "Deep Scan")
     ]
 
     def __init__(self, result: dict):
@@ -117,6 +119,39 @@ class FullscreenDetail(Screen):
                 port_table.add_row(f"{port}/tcp", status_text)
             sections.append(port_table)
 
+        # Deep Scan Results
+        deep_data = r.get("deep_scan")
+        if deep_data:
+                sections.append(_section_rule("Deep Scan Analysis"))
+                deep_table = _make_table()
+
+                for key, info in deep_data.items():
+                    status = info["status"].value  # "pending", "running", etc.
+                    label = info["label"]
+
+                    # Styling berdasarkan status
+                    if status == "running":
+                        status_str = f"[#BB9AF7]↻ {status}...[/]"
+                    elif status == "done":
+                        status_str = f"[#73DACA]✓ {status}[/]"
+                    elif status == "error":
+                        status_str = f"[#F7768E]✗ {status}[/]"
+                    else:
+                        status_str = f"[#565F89]{status}[/]"
+
+                    deep_table.add_row(label, status_str)
+
+                    # Jika sudah DONE dan ada data, tampilkan detailnya
+                    if status == "done" and info["data"]:
+                        d = info["data"]
+                        if key == "favicon" and d.get("hash"):
+                            deep_table.add_row("", f"  [#00A3FF]Hash:[/] {d['hash']}")
+                        elif key == "tech_version" and d.get("summary"):
+                            for t, v in d["summary"].items():
+                                deep_table.add_row("", f"  [#00A3FF]{t}:[/] {v}")
+
+                sections.append(deep_table)
+
         # Cookies
         sections.append(_section_rule("Cookies"))
         cookies = _parse_cookies(http, https)
@@ -173,7 +208,7 @@ class FullscreenDetail(Screen):
             ht2 = _make_table()
             for k, v in h_header.items():
                 ht2.add_row(str(k), str(v)[:80])
-                sections.append(ht2)
+            sections.append(ht2)
         else:
             sections.append(Text("  No headers captured", style="#565F89"))
 
@@ -198,7 +233,7 @@ class FullscreenDetail(Screen):
     def action_screenshot(self):
         def refresh():
             self.query_one(
-                "#fullscreen-conten",
+                "#fullscreen-content",
                 Static
             ).update(self._build_content())
 
@@ -231,6 +266,29 @@ class FullscreenDetail(Screen):
             callback=handle_input
         )
 
+    def action_deep_scan(self):
+        from analysis import run_deep_scan
+        import threading
+
+        def on_module_done(key, states):
+            self.app.call_from_thread(self._refresh_detail)
+
+        self.notify("Starting Deep Scan...", title="Deep Scanning")
+
+        threading.Thread(
+            target=run_deep_scan,
+            args=(self.result, on_module_done),
+            daemon=True
+        ).start()
+
+    def _refresh_detail(self):
+        try:
+            widget = self.query_one("#fullscreen-content", Static)
+            widget.update(self._build_content())
+        except Exception as e:
+            log.error(f"fullscreen error: {e}")
+            pass
+
     def action_dismiss_screen(self):
             self.app.pop_screen()
 
@@ -262,7 +320,7 @@ def _parse_cookies(http: dict, https: dict) -> dict:
     for proto in (http, https):
         header = proto.get("raw_header") or {}
         for k, v in header.items():
-            if k.lower() == 'set-cookies':
+            if k.lower() == 'set-cookie':
                 parts = str(v).split(";")[0]
                 if '=' in parts:
                     name, _, val = parts.partition('=')
