@@ -106,18 +106,22 @@ def check_wildcard(domain: str):
         res_http = http_future.result()
         res_https = https_future.result()
 
-    if res_http.get("status") not in ["CONN_ERR", "SSL_ERR"]:
+    from .validate import parse_response
+    h = parse_response(res_http, None)
+    s = parse_response(res_https, None)
+
+    if h.get("status") not in ["CONN_ERR", "SSL_ERR"]:
         baselines["http"] = {
-            "title": res_http.get("title"),
-            "status": res_http.get("status"),
-            "size": res_http.get("size")
+            "title": h.get("title"),
+            "status": h.get("status"),
+            "size": h.get("size")
         }
 
-    if res_https.get("status") not in ["CONN_ERR", "SSL_ERR"]:
+    if s.get("status") not in ["CONN_ERR", "SSL_ERR"]:
         baselines["https"] = {
-            "title": res_https.get("title"),
-            "status": res_https.get("status"),
-            "size": res_https.get("size")
+            "title": s.get("title"),
+            "status": s.get("status"),
+            "size": s.get("size")
         }
     return baselines
 
