@@ -20,7 +20,8 @@ class FullscreenDetail(Screen):
         Binding("escape", "dismiss_screen", "Close"),
         Binding("q", "dismiss_screen", "Close"),
         Binding("s", "screenshot", "Screenshot"),
-        Binding("p", "scan_port", "Scan Ports")
+        Binding("p", "scan_port", "Scan Ports"),
+        Binding("x", "deep_scan", "Deep Scan")
     ]
 
     def __init__(self, result: dict):
@@ -230,6 +231,27 @@ class FullscreenDetail(Screen):
             PortInputModal(),
             callback=handle_input
         )
+
+    def action_deep_scan(self):
+        from analysis import run_deep_scan
+        import threading
+
+        def on_module_done(key, states):
+            self.app.call_from_thread(self._refresh_detail)
+
+        self.notify("Starting Deep Scan...", title="Deep Scanning")
+
+        threading.Thread(
+            target=run_deep_scan,
+            args=(self.result, on_module_done),
+            daemon=True
+        ).start()
+
+    def _refresh_detail(self):
+        try:
+            content = self.query_one("#fullscreen-content", Static).update(self._build_content())
+        except:
+            ...
 
     def action_dismiss_screen(self):
             self.app.pop_screen()
