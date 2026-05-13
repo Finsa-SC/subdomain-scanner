@@ -1,3 +1,4 @@
+from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
 from textual.screen import Screen
@@ -300,22 +301,14 @@ class FullscreenDetail(Screen):
             callback=handle_input
         )
 
+    @work(thread=True)
     def action_deep_scan(self):
         from analysis import run_deep_scan
-        import threading
-
         def on_module_done(key, states):
-            self.app.call_from_thread(lambda:
-                self.query_one("#fullscreen-content", Static).update(self._build_content())
-            )
-
+            self._refresh_detail()
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
-        threading.Thread(
-            target=run_deep_scan,
-            args=(self.result, on_module_done),
-            daemon=True
-        ).start()
+        run_deep_scan(self.result, on_module_done)
 
     def _refresh_detail(self):
         try:
