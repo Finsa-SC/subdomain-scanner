@@ -58,7 +58,7 @@ def run_deep_scan(
             log.error(f"deep_scan module '{key}' failed: {err}")
             result['deep_scan'][key].update({
                 "status": StatusAction.ERROR,
-                 "data": {"error": str(err)}
+                "data": {"error": str(err)}
             })
 
         on_module_done(key, result['deep_scan'])
