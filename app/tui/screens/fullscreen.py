@@ -67,18 +67,19 @@ class FullscreenDetail(Screen):
         sections.append(protocol_section)
 
         # Ports
-        ports = r.get("ports")
-        if ports:
+        if 'ports' in r:
             sections.append(Rule(title="[bold #00A3FF]Ports[/]", style="#1A1B26"))
             port_table = _make_table()
-            for port, status in sorted(ports.items()):
-                if status == "open":
-                    status_text = f"[#73DACA]{status}[/]"
-                else:
-                    status_text = f"[#FFD700]{status}[/]"
+            ports = r.get("ports") or {}
 
-                port_table.add_row(f"{port}/tcp", status_text)
-            sections.append(port_table)
+            open_ports = {port: status for port, status in ports.items() if status == 'open'}
+            if open_ports:
+                for port, status in sorted(open_ports.items()):
+                    status_text = f"[#73DACA]{status}[/]"
+                    port_table.add_row(f"{port}/tcp", status_text)
+                sections.append(port_table)
+            else:
+                sections.append(Text("  No open ports detected", style="#565F89"))
 
         # Deep Scan Results
         deep_data = r.get("deep_scan")
@@ -286,10 +287,8 @@ class FullscreenDetail(Screen):
             ports
         )
         self.result["ports"] = result
-        self._refresh_detail()
+        self.app.call_from_thread(self._refresh_detail)
 
-
-    @work(thread=True)
     def action_scan_port(self):
         def handle_input(value):
             if not value:
