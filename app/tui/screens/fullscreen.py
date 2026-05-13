@@ -245,7 +245,69 @@ class FullscreenDetail(Screen):
             Text("[bold #FFD700]HTTP[/]", style="bold"),
             Text("[bold #FFD700]HTTPS[/]", style="bold")
         )
+        # status
+        h_st = _format_status_colored(http.get("status"))
+        s_st = _format_status_colored(https.get("status"))
+        table.add_row(h_st, s_st)
 
+        # server
+        h_srv = (http.get("server") or "-")[:20]
+        s_srv = (https.get("server") or "-")[:20]
+        table.add_row(h_srv, s_srv)
+
+        # Latency
+        h_lat = f"{http.get('latency')}ms" if http.get("latency") else "N/A"
+        s_lat = f"{https.get('latency')}ms" if https.get("latency") else "N/A"
+        table.add_row(h_lat, s_lat)
+
+        # Size
+        h_sz = f"{http.get('size', 0):,} B"
+        s_sz = f"{https.get('size', 0):,} B"
+        table.add_row(h_sz, s_sz)
+
+        # Title
+        h_title = (http.get("title") or "-")[:25]
+        s_title = (https.get("title") or "-")[:25]
+        table.add_row(h_title, s_title)
+
+        # Tech
+        h_tech = ", ".join(http.get("tech", [])[:2]) or "-"
+        s_tech = ", ".join(https.get("tech", [])[:2]) or "-"
+        table.add_row(h_tech, s_tech)
+
+        return table
+
+    @staticmethod
+    def _honeypot_analyze(result: dict):
+        score = result.get("honeypot_score", 0)
+        label = result.get("honeypot_label", "Unlikely")
+
+        filled = int(score * 10)
+        bar = ""
+        for i in range(10):
+            if i < filled:
+                if i < 3:
+                    bar += "[#00E0FF]█[/]"
+                elif i < 6:
+                    bar += "[#00C8FF]█[/]"
+                else:
+                    bar += "[#00A3FF]█[/]"
+            else:
+                bar += "[#1A1B26]░[/]"
+
+        text_color = "#F7768E" if score >= 0.75 else "#FFD700" if score >= 0.5 else "#565F89"
+
+        honey_table = _make_table()
+        honey_table.add_row("Score", f"{bar} [{text_color}]{score * 100:.0f}%[/]")
+        honey_table.add_row("Label", f"[{text_color} bold]{label}[/]")
+
+        findings = result.get("honeypot_findings", [])
+        if findings:
+            honey_table.add_row("", "")
+            for f in findings:
+                honey_table.add_row("[#565F89]Finding[/]", f[:70])
+
+        return honey_table
 
     def action_screenshot(self):
         def refresh():
