@@ -1,6 +1,5 @@
 import re
 import ipaddress
-from distutils.command.install import sys_key
 
 from models import PROXY_IPS
 
@@ -103,7 +102,7 @@ class FilterParser:
                     return False
 
         if 'wildcard:' in query:
-            match = re.search(f'wildcard:(true|false)', query)
+            match = re.search(r'wildcard:(true|false)', query)
             if match:
                 target = match.group(1)
                 wildcard = result.get("wildcard", False)
@@ -215,7 +214,7 @@ class FilterParser:
                     return False
 
         if 'latency:' in query:
-            match = re.search(f'latency:([\d,-]+)', query)
+            match = re.search(r'latency:([\d,-]+)', query)
             if match:
                 targets = [x.strip() for x in match.group(1).split(",")]
                 h_lat = self.http.get("latency") or 0
@@ -240,6 +239,33 @@ class FilterParser:
                                 matched = True
                         except ValueError:
                             pass
+                if not matched:
+                    return False
+
+        if 'port:' in query:
+            match = re.search(r'port:([\d,-]+)', query)
+            if match:
+                targets = [x.strip() for x in match.group(1).split(",")]
+                ports = result.get("ports", {})
+                matched = False
+                for target in targets:
+                    if '-' in target:
+                        try:
+                            start, end = map(int, target.split('-'))
+                            for port in ports:
+                                if start <= int(port) <= end:
+                                    matched = True
+                                    break
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            exact = int(target)
+                            if exact in ports:
+                                matched = True
+                        except ValueError:
+                            pass
+
                 if not matched:
                     return False
 

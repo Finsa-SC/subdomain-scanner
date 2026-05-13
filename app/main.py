@@ -1,13 +1,9 @@
 from models import set_config
-
+from utils import parse_port
 from dotenv import load_dotenv
-
 from models.scan_config import ScanConfig
-import os
-import tempfile
-import argparse
-import sys
-
+from pathlib import Path
+import os, sys, argparse, tempfile, shutil
 
 ### Init env
 load_dotenv()
@@ -16,7 +12,7 @@ THREAD = int(os.getenv("THREAD", 5))
 DEBUG = os.getenv("DEBUG", "false").lower().strip() == "true"
 DELAY = float(os.getenv("DELAY", 0.0))
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 
 def main():
     temp_path = None
@@ -30,21 +26,30 @@ def main():
             sys.argv.extend(["-dL", temp_path])
         except Exception as e:
             print(f"[x] Failed reading pipe data: {e}")
-            sys.exit(1)
+            sys.exit(1) 
 
-    banner = ""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(current_dir)
+    banner_path = os.path.join(base_dir, "assets", "banner.txt")
+    try:
+        with open(banner_path, 'r', encoding='utf-8') as file:
+            banner = file.read()
+    except FileNotFoundError:
+        banner = "[ Subv ]"
     parser = argparse.ArgumentParser(
         prog="subv",
         description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="[!] WARNING: Use with caution. Scanning will trigger logs on the target server."
     )
+
     # 1. INPUT ARGUMENTS
     input_group = parser.add_argument_group('INPUT ARGUMENTS')
     me_group = input_group.add_mutually_exclusive_group(required=True)
     me_group.add_argument("-d", "--domain", help="Search for single domain")
     me_group.add_argument("-dL", "--domain-list", help="Validate multiple subdomain from file")
     input_group.add_argument("-s", "--source", type=str, help="Select source from domain track record")
+    input_group.add_argument("-p", "--port", type=str, help="Scan specific ports (e.g. 80,443,1-1000)")
 
     # 2. CONFIGURATION
     config_group = parser.add_argument_group('CONFIGURATION')
@@ -53,6 +58,7 @@ def main():
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
     config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
+    config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
     # 3. OUTPUT FILTERING
     filter_group = parser.add_argument_group('OUTPUT FILTERING')
@@ -69,15 +75,25 @@ def main():
     export_group.add_argument("-o", "--output", action="store_true", help="Save result as plain list")
     export_group.add_argument("-oJ", "--output-json", action="store_true", help="Save result as JSON with detail")
 
-
     # 3. PROFILING & ANALYSIS
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
     profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
+    profile_group.add_argument("--screenshot", action="store_true", help="Take screenshot to each subdomain with 200 status code")
 
-    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
 
     if len(sys.argv) == 1:
         parser.print_help()
+        sys.exit(0)
+
+    # Program
+    parser.add_argument("--purge", action="store_true", help="Purge entire data in results directory")
+    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
+
+    #purge
+    if "--purge" in sys.argv:
+        target = Path("results")
+        shutil.rmtree(target, ignore_errors=True)
+        print("[✓] results directory purged")
         sys.exit(0)
 
     args = parser.parse_args()
@@ -92,9 +108,9 @@ def main():
         source=args.source,
         all_resource=args.all,
         honeypot=args.honeypot,
-        max_size=args.max_size,
-        min_size=args.min_size,
+        screenshot=args.screenshot,
         dns=args.dns,
+        port=parse_port(args.port)
     )
 
     set_config(config)
