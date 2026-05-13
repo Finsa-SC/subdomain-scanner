@@ -179,3 +179,14 @@ def _scan_body(body: str) -> list[dict[str, str]]:
             "source": pattern['source']
         })
     return results
+
+def _build_summary(found: list[dict]) -> dict[str, str]:
+    summary = {}
+    for item in found:
+        tech = item['tech']
+        version = item['version']
+        if tech not in summary:
+            summary[tech] = version
+        elif summary[tech] == 'detected' and version != 'detected':
+            summary[tech] == version
+    return summary
