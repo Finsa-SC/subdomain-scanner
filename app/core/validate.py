@@ -162,7 +162,7 @@ def validate_subdomain(sub, wildcard_baseline):
                 "body_hash": s.get("body_hash"),
                 "header_keys": s.get("header_keys", []),
             },
-            "signing": sign(http_status, https_status, is_any_wildcard),
+            "signing": signing,
             "wildcard": is_any_wildcard,
         }
 
