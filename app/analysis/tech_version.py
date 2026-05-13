@@ -160,4 +160,22 @@ def _fetch_body(result: dict, timeout: float = 8.0) -> str | None:
         log.debug(f"_fetch_body failed {subdomain}: {e}")
         return None
 
-
+def _scan_body(body: str) -> list[dict[str, str]]:
+    results = []
+    if not body:
+        return results
+    seen = set()
+    for pattern in BODY_PATTERNS:
+        version = _match_version(pattern["pattern"], body)
+        if not version:
+            continue
+        key = f"{pattern['tech']}:{version}"
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append({
+            "tech": pattern['tech'],
+            "version": version,
+            "source": pattern['source']
+        })
+    return results
