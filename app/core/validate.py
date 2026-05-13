@@ -34,10 +34,16 @@ def _detech_tech(header: dict) -> list[str]:
     header_str = " ".join(
         f"{k.lower()}: {v.lower()}" for k, v in header.items()
     )
-    return sorted(
-        name for name, kws in TECH_SIGNATURES.items()
-        if any(kw in header_str for kw in kws)
-    )
+    detected = []
+
+    for name, kws in TECH_SIGNATURES.items():
+        if any(kw in header_str for kw in kws):
+            server_val = header.get('server', '')
+            if name.lower() in server_val.lower():
+                detected.append(server_val)
+            else:
+                detected.append(name)
+    return sorted(list(set(detected)))
 
 def _extract_title(res) -> str:
     try:

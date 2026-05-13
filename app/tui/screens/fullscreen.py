@@ -133,7 +133,6 @@ class FullscreenDetail(Screen):
             sections.append(tech_table)
         else:
             sections.append(Text("  No tech detected", style="#565F89"))
-        sections.append(tech_table)
 
         # Honeypot
         sections.append(Rule(title="[bold #00A3FF]Security Analysis[/]", style="#1A1B26"))
@@ -302,10 +301,32 @@ class FullscreenDetail(Screen):
     def action_deep_scan(self):
         from analysis import run_deep_scan
         def on_module_done(key, states):
+            if key == 'tech_version':
+                self._merge_deep_tech_to_protocols()
             self.app.call_from_thread(self._refresh_detail)
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
         run_deep_scan(self.result, on_module_done)
+
+    def _merge_deep_tech_to_protocols(self):
+        deep_data = self.result.get("deep_scan", {})
+        tech_module = deep_data.get('tech_version', {})
+
+        status_obj = tech_module.get("status")
+        if status_obj and status_obj.value == 'done':
+            data_content = tech_module.get('data')
+            if data_content and 'summary' in data_content:
+                new_tech_list = set()
+                for tech_name, version in data_content['summary'].items():
+                    if version and version != 0:
+                        new_tech_list.add(f"{tech_name}: {version}")
+                    else:
+                        new_tech_list.add(tech_name)
+
+                for proto in ('http', 'https'):
+                    current_tech = self.result[proto].get('tech') or []
+                    combined_set = set(current_tech) | set(new_tech_list)
+                    self.result[proto]['tech'] = list(combined_set)
 
     def _refresh_detail(self):
         try:
