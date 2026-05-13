@@ -51,39 +51,23 @@ class FullscreenDetail(Screen):
         sections = []
 
         # Header identity
-        signing = r.get("signing", "[ ]")
-        is_live = r.get("is_live", False)
-        wildcard = r.get("wildcard", False)
-        score = r.get("honeypot_score", 0)
-        label = r.get("honeypot_label", "Unlikely")
-
-        status_color = "#73DACA" if is_live else "#565F89"
-        identity = Table.grid(padding=(0, 2))
-        identity.add_column(justify="center")
-        identity.add_row(f"[bold #00E0FF]{subdomain}[/]")
-        identity.add_row(f"[italic #00A3FF]{ip}[/]")
-        identity.add_row(
-            f"[{status_color}]{'● Live' if is_live else '● Offline'}[/]"
-            + ("  [#00E0FF]◈ Wildcard[/]" if wildcard else "")
-            + (f"  [#BB9AF7]🍯 {score * 100:.0f}% {label}[/]" if score > 0 else "")
-        )
-        sections.append(Panel(identity, border_style="#00A3FF", padding=(0, 1)))
+        sections.append(self._header_identity(r))
 
         # General
         sections.append(_section_rule("General"))
         gen = _make_table()
         gen.add_row("Subdomain", subdomain)
         gen.add_row("IP Address", ip)
-        gen.add_row("Wildcard", "[#00E0FF]Detected[/]" if wildcard else "[#565F89]No[/]")
+        gen.add_row("Wildcard", "[#00E0FF]Detected[/]" if r.get('wildcard') else "[#565F89]No[/]")
         gen.add_row("Timestamp", r.get("timestamp", "-") or "-")
-        gen.add_row("Sign", signing)
+        gen.add_row("Sign", r.get("signing", "[ ]"))
         sections.append(gen)
 
         # HTTP
         sections.append(_section_rule("HTTP"))
         ht = _make_table()
         h_st = _normalize_status(http.get("status"))
-        ht.add_row("Status", _status_colored(h_st))
+        ht.add_row("Status", _format_status_colored(h_st))
         ht.add_row("Server", http.get("server", "-") or "-")
         ht.add_row("Latency", f"{http.get('latency')}ms" if http.get("latency") else "N/A")
         ht.add_row("Size", f"{http.get('size', 0):,} bytes")
@@ -96,7 +80,7 @@ class FullscreenDetail(Screen):
         sections.append(_section_rule("HTTPS"))
         st = _make_table()
         s_st = _normalize_status(https.get("status"))
-        st.add_row("Status", _status_colored(s_st))
+        st.add_row("Status", _format_status_colored(s_st))
         st.add_row("Server", https.get("server", "-") or "-")
         st.add_row("Latency", f"{https.get('latency')}ms" if https.get("latency") else "N/A")
         st.add_row("Size", f"{https.get('size', 0):,} bytes")
@@ -129,7 +113,7 @@ class FullscreenDetail(Screen):
                     status = info["status"].value  # "pending", "running", etc.
                     label = info["label"]
 
-                    # Styling berdasarkan status
+                    # Styling depends on status
                     if status == "running":
                         status_str = f"[#BB9AF7]↻ {status}...[/]"
                     elif status == "done":
@@ -141,7 +125,6 @@ class FullscreenDetail(Screen):
 
                     deep_table.add_row(label, status_str)
 
-                    # Jika sudah DONE dan ada data, tampilkan detailnya
                     if status == "done" and info["data"]:
                         d = info["data"]
                         if key == "favicon" and d.get("hash"):
@@ -230,6 +213,40 @@ class FullscreenDetail(Screen):
             padding=(1, 2)
         )
 
+    def _header_identity(self, result: dict) -> Panel:
+        subdomain = result.get("subdomain", "")
+        ip = result.get("ip_address", "No IP")
+        is_live = result.get("is_live", False)
+        wildcard = result.get("wildcard", False)
+        score = result.get("honeypot_score", 0)
+        label = result.get("honeypot_label", "Unlikely")
+
+        identity = Table.grid(padding=(0, 2))
+        identity.add_column(justify="center")
+        identity.add_row(f"[bold #00E0FF]{subdomain}[/]")
+        identity.add_row(f"[italic #00A3FF]{ip}[/]")
+
+        status_color = "#73DACA" if is_live else "#565F89"
+        status_line = f"[{status_color}]{'● Live' if is_live else '● Offline'}[/]"
+        if wildcard:
+            status_line += "  [#00E0FF]◈ Wildcard[/]"
+        if score > 0:
+            status_line += f"  [#BB9AF7]🍯 {score * 100:.0f}% {label}[/]"
+        identity.add_row(status_line)
+
+        return Panel(identity, border_style="#00A3FF", padding=(0, 1))
+
+    def _protocol_comparison(self, http: dict, https: dict, subdomain: str) -> Table:
+        table = Table.grid(padding=(0, 2), expand=True)
+        table.add_column(style="#00E0FF", justify="left", ratio=1)
+        table.add_column(style="#00E0FF", justify="left", ratio=1)
+
+        table.add_row(
+            Text("[bold #FFD700]HTTP[/]", style="bold"),
+            Text("[bold #FFD700]HTTPS[/]", style="bold")
+        )
+
+
     def action_screenshot(self):
         def refresh():
             self.query_one(
@@ -302,7 +319,7 @@ def _make_table():
 def _section_rule(title: str):
     return Rule(title=f"[bold #00A3FF]{title}[/]", style="#1A1B26")
 
-def _status_colored(status: int):
+def _format_status_colored(status: int):
     if status == 200:
         return f"[#73DACA]{status} OK[/]"
     elif status in [401, 402, 403]:
