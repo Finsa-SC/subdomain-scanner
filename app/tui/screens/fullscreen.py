@@ -195,55 +195,42 @@ class FullscreenDetail(Screen):
 
     @staticmethod
     def _protocol_comparison(http: dict, https: dict) -> Table:
-        from rich.console import Group as RichGroup
+        def _create_proto_table(result):
+            table = Table.grid(padding=(0, 1))
+            table.add_column(style="#565F89", justify="right", width=10)
+            table.add_column(style="#00E0FF", width=20)
+
+            status = _format_status_colored(result.get("status"))
+            table.add_row("Status", status)
+            table.add_row("Server", (http.get("server") or "-")[:18])
+            table.add_row("Latency", f"{http.get('latency')}ms" if http.get("latency") else "N/A")
+            table.add_row("Size", f"{http.get('size', 0):,} B")
+            table.add_row("Title", (http.get("title") or "-")[:18])
+            table.add_row("Tech", ", ".join(http.get("tech", [])[:2]) or "-")
+            return table
 
         # HTTP Panel
-        http_table = Table.grid(padding=(0, 1))
-        http_table.add_column(style="#565F89", justify="right", width=10)
-        http_table.add_column(style="#00E0FF", width=20)
-
-        h_st = _format_status_colored(http.get("status"))
-        http_table.add_row("Status", h_st)
-        http_table.add_row("Server", (http.get("server") or "-")[:18])
-        http_table.add_row("Latency", f"{http.get('latency')}ms" if http.get("latency") else "N/A")
-        http_table.add_row("Size", f"{http.get('size', 0):,} B")
-        http_table.add_row("Title", (http.get("title") or "-")[:18])
-        http_table.add_row("Tech", ", ".join(http.get("tech", [])[:2]) or "-")
-
         http_panel = Panel(
-            http_table,
+            _create_proto_table(http),
             title="[bold #FFD700]HTTP[/]",
             border_style="#00A3FF",
-            padding=(0, 1)
+            expand=True
         )
 
         # HTTPS Panel
-        https_table = Table.grid(padding=(0, 1))
-        https_table.add_column(style="#565F89", justify="right", width=10)
-        https_table.add_column(style="#00E0FF", width=20)
-
-        s_st = _format_status_colored(https.get("status"))
-        https_table.add_row("Status", s_st)
-        https_table.add_row("Server", (https.get("server") or "-")[:18])
-        https_table.add_row("Latency", f"{https.get('latency')}ms" if https.get("latency") else "N/A")
-        https_table.add_row("Size", f"{https.get('size', 0):,} B")
-        https_table.add_row("Title", (https.get("title") or "-")[:18])
-        https_table.add_row("Tech", ", ".join(https.get("tech", [])[:2]) or "-")
-
         https_panel = Panel(
-            https_table,
+            _create_proto_table(https),
             title="[bold #FFD700]HTTPS[/]",
             border_style="#00A3FF",
-            padding=(0, 1)
+            expand=True
         )
 
-        # Side-by-side render
-        return RichGroup(
-            http_panel,
-            https_panel
-        )
+        layout_grid = Table.grid(padding=(0, 2), expand=True)
+        layout_grid.add_column(ratio=1)
+        layout_grid.add_column(ratio=1)
+        layout_grid.add_row(http_panel, https_panel)
 
-        return table
+        return layout_grid
 
     @staticmethod
     def _honeypot_analysis(result: dict):
