@@ -58,14 +58,14 @@ def run_deep_scan(
             log.error(f"deep_scan module '{key}' failed: {err}")
             result['deep_scan'][key].update({
                 "status": StatusAction.ERROR,
-                 "data": {"error", str(err)}
+                 "data": {"error": str(err)}
             })
 
         on_module_done(key, result['deep_scan'])
 
     with ThreadPoolExecutor(max_workers=len(MODULES)) as ex:
         futures = {
-            ex.submit(_run_module, key, mod)
+            ex.submit(_run_module, key, mod): key
             for key, mod in MODULES.items()
         }
     for future in as_completed(futures):

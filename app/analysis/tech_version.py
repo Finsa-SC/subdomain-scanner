@@ -99,7 +99,7 @@ def _match_version(pattern: str, text: str) -> str | None:
 
     if match.lastindex:
         for i in range(1, match.lastindex + 1):
-            g = match.group(1)
+            g = match.group(i)
             if g and g.strip():
                 return g.strip()
     return "detected"
@@ -110,7 +110,7 @@ def _scan_headers(headers: dict) -> list[dict]:
         return results
 
     h = {k.lower(): v for k, v in headers.items()}
-    seen = set
+    seen = set()
     for pattern in HEADER_PATTERNS:
         val = h.get(pattern["header"].lower(), "")
         if not val:
