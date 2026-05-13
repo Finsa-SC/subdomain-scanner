@@ -54,7 +54,7 @@ class FullscreenDetail(Screen):
         sections.append(self._header_identity(r))
 
         # General
-        sections.append(_section_rule("General"))
+        sections.append(Rule(title="[bold #00A3FF]General[/]", style="#1A1B26"))
         gen = _make_table()
         gen.add_row("Subdomain", subdomain)
         gen.add_row("IP Address", ip)
@@ -63,36 +63,14 @@ class FullscreenDetail(Screen):
         gen.add_row("Sign", r.get("signing", "[ ]"))
         sections.append(gen)
 
-        # HTTP
-        sections.append(_section_rule("HTTP"))
-        ht = _make_table()
-        h_st = _normalize_status(http.get("status"))
-        ht.add_row("Status", _format_status_colored(h_st))
-        ht.add_row("Server", http.get("server", "-") or "-")
-        ht.add_row("Latency", f"{http.get('latency')}ms" if http.get("latency") else "N/A")
-        ht.add_row("Size", f"{http.get('size', 0):,} bytes")
-        ht.add_row("Title", http.get("title", "-") or "-")
-        ht.add_row("Redirect", _format_redirect(http.get("redir"), subdomain))
-        ht.add_row("Body Hash", http.get("body_hash", "-") or "-")
-        sections.append(ht)
-
-        # HTTPS
-        sections.append(_section_rule("HTTPS"))
-        st = _make_table()
-        s_st = _normalize_status(https.get("status"))
-        st.add_row("Status", _format_status_colored(s_st))
-        st.add_row("Server", https.get("server", "-") or "-")
-        st.add_row("Latency", f"{https.get('latency')}ms" if https.get("latency") else "N/A")
-        st.add_row("Size", f"{https.get('size', 0):,} bytes")
-        st.add_row("Title", https.get("title", "-") or "-")
-        st.add_row("Redirect", _format_redirect(https.get("redir"), subdomain))
-        st.add_row("Body Hash", https.get("body_hash", "-") or "-")
-        sections.append(st)
+        # Protocol
+        sections.append(Rule(title="[bold #00A3FF]Protocol[/]", style="#1A1B26"))
+        sections.append(self._protocol_comparison(http, https, subdomain))
 
         # Ports
         ports = r.get("ports")
         if ports:
-            sections.append(_section_rule("Ports"))
+            sections.append(Rule(title="[bold #00A3FF]Ports[/]", style="#1A1B26"))
             port_table = _make_table()
             for port, status in sorted(ports.items()):
                 if status == "open":
@@ -106,7 +84,7 @@ class FullscreenDetail(Screen):
         # Deep Scan Results
         deep_data = r.get("deep_scan")
         if deep_data:
-                sections.append(_section_rule("Deep Scan Analysis"))
+                sections.append(Rule(title="[bold #00A3FF]Deep Scan[/]", style="#1A1B26"))
                 deep_table = _make_table()
 
                 for key, info in deep_data.items():
@@ -147,45 +125,23 @@ class FullscreenDetail(Screen):
             sections.append(Text("  No cookies detected", style="#565F89"))
 
         # Tech detection
-        sections.append(_section_rule("Tech Detection"))
+        sections.append(Rule(title="[bold #00A3FF]Technology[/]", style="#1A1B26"))
         tech = list(set((http.get("tech") or []) + (https.get("tech") or [])))
+        tech_table = _make_table()
         if tech:
-            tech_table = _make_table()
             for item in tech:
                 tech_table.add_row("Detected", item)
             sections.append(tech_table)
         else:
             sections.append(Text("  No tech detected", style="#565F89"))
+        sections.append(tech_table)
 
         # Honeypot
-        sections.append(_section_rule("Honeypot Analysis"))
-        honeypot_table = _make_table()
-        filled = int(score * 10)
-        bar = ""
-        for i in range(10):
-            if i < filled:
-                if i < 3:
-                    bar += "[#00E0FF]█[/]"
-                elif i < 6:
-                    bar += "[#00C8FF]█[/]"
-                else:
-                    bar += "[#00A3FF]█[/]"
-            else:
-                bar += "[#1A1B26]░[/]"
+        sections.append(Rule(title="[bold #00A3FF]Security Analysis[/]", style="#1A1B26"))
+        sections.append(self._honeypot_analysis(r))
 
-        text_color = "#F7768E" if score >= 0.75 else "#FFD700" if score >= 0.5 else "#565F89"
-        honeypot_table.add_row("Score", f"{bar} [{text_color}]{score * 100:.0f}%[/]")
-        honeypot_table.add_row("Label", f"[{text_color} bold]{label}[/]")
-
-        findings = r.get("honeypot_findings", [])
-        if findings:
-            honeypot_table.add_row("", "")
-            for f in findings:
-                honeypot_table.add_row("[#565F89]Finding[/]", f[:70])
-        sections.append(honeypot_table)
-
-        # Headers
-        sections.append(_section_rule("HTTP Header"))
+        # Headers http
+        sections.append(Rule(title="[bold #00A3FF]HTTP Headers[/]", style="#1A1B26"))
         h_header = http.get("raw_header") or {}
         if h_header:
             ht2 = _make_table()
@@ -195,7 +151,8 @@ class FullscreenDetail(Screen):
         else:
             sections.append(Text("  No headers captured", style="#565F89"))
 
-        sections.append(_section_rule("HTTPS Header"))
+        # Headers https
+        sections.append(Rule(title="[bold #00A3FF]HTTPS Headers[/]", style="#1A1B26"))
         s_header = https.get("raw_header") or {}
         if s_header:
             st2 = _make_table()
@@ -278,7 +235,7 @@ class FullscreenDetail(Screen):
         return table
 
     @staticmethod
-    def _honeypot_analyze(result: dict):
+    def _honeypot_analysis(result: dict):
         score = result.get("honeypot_score", 0)
         label = result.get("honeypot_label", "Unlikely")
 
@@ -350,7 +307,9 @@ class FullscreenDetail(Screen):
         import threading
 
         def on_module_done(key, states):
-            self.app.call_from_thread(self._refresh_detail)
+            self.app.call_from_thread(lambda:
+                self.query_one("#fullscreen-content", Static).update(self._build_content())
+            )
 
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
