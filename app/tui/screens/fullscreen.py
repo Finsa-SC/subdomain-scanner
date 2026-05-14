@@ -1,5 +1,3 @@
-import token
-
 from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
@@ -13,6 +11,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
 from utils import do_screenshot, parse_port, scan_port, get_logger
+from ..widgets import _format_redirect
 
 log = get_logger("fullscreen")
 
@@ -187,8 +186,9 @@ class FullscreenDetail(Screen):
             table.add_column(style="#565F89", justify="left", width=10)
             table.add_column(style="#00E0FF", justify="right")
 
-            status = _format_status_colored(target_data.get("status"))
-            table.add_row("Status", status)
+            status = target_data.get("status")
+            status_str = _format_status_colored(status)
+            table.add_row("Status", status_str if status not in (301, 302) else f"{status_str} -> {_format_redirect(target_data.get('redir'))}")
             table.add_row("Server", (target_data.get("server") or "-")[:18])
             table.add_row("Latency", f"{target_data.get('latency')}ms" if target_data.get("latency") else "N/A")
             table.add_row("Size", f"{target_data.get('size', 0):,} B")
