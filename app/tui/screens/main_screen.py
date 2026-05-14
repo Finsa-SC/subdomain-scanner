@@ -82,11 +82,11 @@ class MainScreen(Screen):
         table = self.query_one("#subdomain-table", SubdomainTable)
 
         if not query.strip():
-            table.update_data(self.results)
-            self.filtered_results = self.results.copy()
+            self.filtered_results = list(self.results)
         else:
             self.filtered_results = self.parser.parse(query, self.results)
-            table.update_data(self.filtered_results)
+        table.update_data(self.filtered_results)
+        self.update_stats()
 
     def update_stats(self):
         status_bar = self.query_one("#stats-bar", StatsBar)
