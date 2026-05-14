@@ -44,21 +44,24 @@ StatsBar {
     height: 3;
     background: #1A1B26;
     border-top: solid #00A3FF;
-}
-
-#stats-text {
-    width: 1fr;
-    content-align: left middle;
+    layout: horizontal;
 }
 
 #btn-toggle-stats {
-    width: 5;
+    width: 3;
     height: 1;
-    border: none;
+    margin: 0 1;
     background: #00A3FF;
     color: white;
+    border: none;
 }
 
+#stats-text {
+    width: auto;
+    height: 1;
+    content-align: left middle;
+    color: #00E0FF;
+}
 DataTable {
     height: 1fr;
     background: #0B0E14;
