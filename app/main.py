@@ -56,7 +56,6 @@ def main():
     config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
     config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 5)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
-    config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
     config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
@@ -65,8 +64,8 @@ def main():
     filter_group.add_argument("-A", "--available", action="store_true", help="Only show domain with 200 status code")
     filter_group.add_argument("-L", "--live", action="store_true", help="Only show domain with 200 status code")
     filter_group.add_argument("-w", "--no-wildcard", action="store_true", help="Skip if wildcard DNS detected")
-    filter_group.add_argument("--ip", action="store_true", help="Show IP address instead of subdomain")
-    filter_group.add_argument("-q", "--query", action="store_true",  help="Filter query (e.g. 'status:200 server:nginx NOT honeypot:true')")
+    filter_group.add_argument("--ip", type=str, help="Show IP address instead of subdomain")
+    filter_group.add_argument("-q", "--query", type=str,  help="Filter query (e.g. 'status:200 server:nginx NOT honeypot:true')")
 
     # 4. EXPORT OPTIONS
     export_group = parser.add_argument_group('EXPORT OPTIONS')
@@ -84,7 +83,7 @@ def main():
 
     # Program
     parser.add_argument("--purge", action="store_true", help="Purge entire data in results directory")
-    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
+    parser.add_argument("-V", "--version", action="version", version=f"subv {VERSION}")
 
     #purge
     if "--purge" in sys.argv:
@@ -99,7 +98,9 @@ def main():
     if args.no_wildcard:
         filter_query += " wildcard:no"
     if args.available:
-        filter_query += " status:200,301,302,307,308"
+        filter_query += " status:available"
+    if args.live:
+        filter_query += " status:live"
     if args.ip:
         filter_query += f" ip:{args.ip}"
 
@@ -120,7 +121,6 @@ def main():
     )
 
     set_config(config)
-
     domain_or_file = args.domain or args.domain_list
 
     from tui import run_tui
