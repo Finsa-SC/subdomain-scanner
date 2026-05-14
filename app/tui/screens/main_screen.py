@@ -9,7 +9,6 @@ from ..filter_parser import FilterParser
 import threading
 from utils import can_screenshot, take_screenshot, do_screenshot
 
-
 class MainScreen(Screen):
     BINDINGS = [
         Binding("slash", "focus_filter", "Filter", key_display="/"),
@@ -37,7 +36,9 @@ class MainScreen(Screen):
         self._rendered_count = 0
 
     def compose(self):
+        initial_query = self.config.query if self.config.query else ""
         yield Input(
+            value=initial_query,
             placeholder="Filter: status:200, server:nginx, NOT status:404",
             id="filter-input"
         )
@@ -88,7 +89,7 @@ class MainScreen(Screen):
             table.update_data(self.filtered_results)
 
     def update_stats(self):
-        status_bar = self.query_one("#status-bar", StatsBar)
+        status_bar = self.query_one("#stats-bar", StatsBar)
         status_bar.update_stats(
             total=len(self.results),
             filtered=len(self.filtered_results),
