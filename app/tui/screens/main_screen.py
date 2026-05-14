@@ -94,7 +94,8 @@ class MainScreen(Screen):
             total=len(self.results),
             filtered=len(self.filtered_results),
             live=sum(1 for r in self.results if r.get("is_live")),
-            honeypots=sum(1 for r in self.results if r.get("is_honeypot"))
+            honeypots=sum(1 for r in self.results if r.get("is_honeypot")),
+            wildcard=sum(1 for r in self.results if r.get('wildcard'))
         )
 
     def action_focus_filter(self):
