@@ -121,17 +121,6 @@ class FullscreenDetail(Screen):
         else:
             sections.append(Text("  No cookies detected", style="#565F89"))
 
-        # Tech detection
-        sections.append(Rule(title="[bold #00A3FF]Technology[/]", style="#1A1B26", align='left'))
-        tech = list(set((http.get("tech") or []) + (https.get("tech") or [])))
-        tech_table = _make_table()
-        if tech:
-            for item in tech:
-                tech_table.add_row("Detected", item)
-            sections.append(tech_table)
-        else:
-            sections.append(Text("  No tech detected", style="#565F89"))
-
         # Headers http
         sections.append(Rule(title="[bold #00A3FF]HTTP Headers[/]", style="#1A1B26", align='left'))
         h_header = http.get("raw_header") or {}
