@@ -1,3 +1,6 @@
+import token
+
+from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
 from textual.screen import Screen
@@ -9,8 +12,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-from ..widgets.subdomain_table import _normalize_status
-from ..widgets.detail_panel import _format_redirect
 from utils import do_screenshot, parse_port, scan_port, get_logger
 
 log = get_logger("fullscreen")
@@ -51,85 +52,53 @@ class FullscreenDetail(Screen):
         sections = []
 
         # Header identity
-        signing = r.get("signing", "[ ]")
-        is_live = r.get("is_live", False)
-        wildcard = r.get("wildcard", False)
-        score = r.get("honeypot_score", 0)
-        label = r.get("honeypot_label", "Unlikely")
-
-        status_color = "#73DACA" if is_live else "#565F89"
-        identity = Table.grid(padding=(0, 2))
-        identity.add_column(justify="center")
-        identity.add_row(f"[bold #00E0FF]{subdomain}[/]")
-        identity.add_row(f"[italic #00A3FF]{ip}[/]")
-        identity.add_row(
-            f"[{status_color}]{'● Live' if is_live else '● Offline'}[/]"
-            + ("  [#00E0FF]◈ Wildcard[/]" if wildcard else "")
-            + (f"  [#BB9AF7]🍯 {score * 100:.0f}% {label}[/]" if score > 0 else "")
-        )
-        sections.append(Panel(identity, border_style="#00A3FF", padding=(0, 1)))
+        sections.append(self._header_identity(r))
 
         # General
-        sections.append(_section_rule("General"))
+        sections.append(Rule(title="[bold #00A3FF]General[/]", style="#1A1B26", align='left'))
         gen = _make_table()
         gen.add_row("Subdomain", subdomain)
         gen.add_row("IP Address", ip)
-        gen.add_row("Wildcard", "[#00E0FF]Detected[/]" if wildcard else "[#565F89]No[/]")
+        gen.add_row("Wildcard", "[#00E0FF]Detected[/]" if r.get('wildcard') else "[#565F89]No[/]")
         gen.add_row("Timestamp", r.get("timestamp", "-") or "-")
-        gen.add_row("Sign", signing)
+        gen.add_row("Sign", r.get("signing", "[ ]"))
         sections.append(gen)
 
-        # HTTP
-        sections.append(_section_rule("HTTP"))
-        ht = _make_table()
-        h_st = _normalize_status(http.get("status"))
-        ht.add_row("Status", _status_colored(h_st))
-        ht.add_row("Server", http.get("server", "-") or "-")
-        ht.add_row("Latency", f"{http.get('latency')}ms" if http.get("latency") else "N/A")
-        ht.add_row("Size", f"{http.get('size', 0):,} bytes")
-        ht.add_row("Title", http.get("title", "-") or "-")
-        ht.add_row("Redirect", _format_redirect(http.get("redir"), subdomain))
-        ht.add_row("Body Hash", http.get("body_hash", "-") or "-")
-        sections.append(ht)
-
-        # HTTPS
-        sections.append(_section_rule("HTTPS"))
-        st = _make_table()
-        s_st = _normalize_status(https.get("status"))
-        st.add_row("Status", _status_colored(s_st))
-        st.add_row("Server", https.get("server", "-") or "-")
-        st.add_row("Latency", f"{https.get('latency')}ms" if https.get("latency") else "N/A")
-        st.add_row("Size", f"{https.get('size', 0):,} bytes")
-        st.add_row("Title", https.get("title", "-") or "-")
-        st.add_row("Redirect", _format_redirect(https.get("redir"), subdomain))
-        st.add_row("Body Hash", https.get("body_hash", "-") or "-")
-        sections.append(st)
+        # Protocol
+        sections.append(Rule(title="[bold #00A3FF]PROTOCOL[/]", style="#1A1B26", align='left'))
+        protocol_section = self._protocol_comparison(http, https)
+        sections.append(protocol_section)
 
         # Ports
-        ports = r.get("ports")
-        if ports:
-            sections.append(_section_rule("Ports"))
+        if 'ports' in r:
+            sections.append(Rule(title="[bold #00A3FF]Ports[/]", style="#1A1B26"))
             port_table = _make_table()
-            for port, status in sorted(ports.items()):
-                if status == "open":
-                    status_text = f"[#73DACA]{status}[/]"
-                else:
-                    status_text = f"[#FFD700]{status}[/]"
+            ports = r.get("ports") or {}
 
-                port_table.add_row(f"{port}/tcp", status_text)
-            sections.append(port_table)
+            open_ports = {port: status for port, status in ports.items() if status == 'open'}
+            if open_ports:
+                for port, status in sorted(open_ports.items()):
+                    status_text = f"[#73DACA]{status}[/]"
+                    port_table.add_row(f"{port}/tcp", status_text)
+                sections.append(port_table)
+            else:
+                sections.append(Text("  No open ports detected", style="#565F89"))
+
+        # Honeypot
+        sections.append(Rule(title="[bold #00A3FF]HONEYPOT ANALYSIS[/]", style="#1A1B26", align='left'))
+        sections.append(self._honeypot_analysis(r))
 
         # Deep Scan Results
         deep_data = r.get("deep_scan")
         if deep_data:
-                sections.append(_section_rule("Deep Scan Analysis"))
+                sections.append(Rule(title="[bold #00A3FF]Deep Scan[/]", style="#1A1B26"))
                 deep_table = _make_table()
 
                 for key, info in deep_data.items():
                     status = info["status"].value  # "pending", "running", etc.
                     label = info["label"]
 
-                    # Styling berdasarkan status
+                    # Styling depends on status
                     if status == "running":
                         status_str = f"[#BB9AF7]↻ {status}...[/]"
                     elif status == "done":
@@ -141,7 +110,6 @@ class FullscreenDetail(Screen):
 
                     deep_table.add_row(label, status_str)
 
-                    # Jika sudah DONE dan ada data, tampilkan detailnya
                     if status == "done" and info["data"]:
                         d = info["data"]
                         if key == "favicon" and d.get("hash"):
@@ -164,45 +132,18 @@ class FullscreenDetail(Screen):
             sections.append(Text("  No cookies detected", style="#565F89"))
 
         # Tech detection
-        sections.append(_section_rule("Tech Detection"))
+        sections.append(Rule(title="[bold #00A3FF]Technology[/]", style="#1A1B26", align='left'))
         tech = list(set((http.get("tech") or []) + (https.get("tech") or [])))
+        tech_table = _make_table()
         if tech:
-            tech_table = _make_table()
             for item in tech:
                 tech_table.add_row("Detected", item)
             sections.append(tech_table)
         else:
             sections.append(Text("  No tech detected", style="#565F89"))
 
-        # Honeypot
-        sections.append(_section_rule("Honeypot Analysis"))
-        honeypot_table = _make_table()
-        filled = int(score * 10)
-        bar = ""
-        for i in range(10):
-            if i < filled:
-                if i < 3:
-                    bar += "[#00E0FF]█[/]"
-                elif i < 6:
-                    bar += "[#00C8FF]█[/]"
-                else:
-                    bar += "[#00A3FF]█[/]"
-            else:
-                bar += "[#1A1B26]░[/]"
-
-        text_color = "#F7768E" if score >= 0.75 else "#FFD700" if score >= 0.5 else "#565F89"
-        honeypot_table.add_row("Score", f"{bar} [{text_color}]{score * 100:.0f}%[/]")
-        honeypot_table.add_row("Label", f"[{text_color} bold]{label}[/]")
-
-        findings = r.get("honeypot_findings", [])
-        if findings:
-            honeypot_table.add_row("", "")
-            for f in findings:
-                honeypot_table.add_row("[#565F89]Finding[/]", f[:70])
-        sections.append(honeypot_table)
-
-        # Headers
-        sections.append(_section_rule("HTTP Header"))
+        # Headers http
+        sections.append(Rule(title="[bold #00A3FF]HTTP Headers[/]", style="#1A1B26", align='left'))
         h_header = http.get("raw_header") or {}
         if h_header:
             ht2 = _make_table()
@@ -212,7 +153,8 @@ class FullscreenDetail(Screen):
         else:
             sections.append(Text("  No headers captured", style="#565F89"))
 
-        sections.append(_section_rule("HTTPS Header"))
+        # Headers https
+        sections.append(Rule(title="[bold #00A3FF]HTTPS Headers[/]", style="#1A1B26", align='left'))
         s_header = https.get("raw_header") or {}
         if s_header:
             st2 = _make_table()
@@ -230,6 +172,105 @@ class FullscreenDetail(Screen):
             padding=(1, 2)
         )
 
+    @staticmethod
+    def _header_identity(result: dict) -> Panel:
+        subdomain = result.get("subdomain", "")
+        ip = result.get("ip_address", "No IP")
+        is_live = result.get("is_live", False)
+        wildcard = result.get("wildcard", False)
+
+        status_color = "#73DACA" if is_live else "#565F89"
+        status_text = "● Live" if is_live else "● Offline"
+
+        identity = Table.grid(expand=True)
+        identity.add_column(justify="left", ratio=1)
+        identity.add_column(justify="right", vertical='top')
+        sub_display = f"[bold #00E0FF underline]{subdomain}[/]"
+        status_display = f"[{status_color}]{status_text}[/]"
+
+        identity.add_row(sub_display, status_display)
+        identity.add_row(f"[italic #00A3FF]{ip}[/]", "")
+
+        if wildcard:
+            identity.add_row("[#00E0FF]◈ Wildcard Detected[/]", "")
+
+        return Panel(
+            identity,
+            border_style="#00A3FF",
+            padding=(1, 2),
+            title="[#565F89]Target Identity[/]",
+            title_align="left"
+        )
+    @staticmethod
+    def _protocol_comparison(http: dict, https: dict) -> Table:
+        def _create_proto_table(target_data):
+            table = Table.grid(padding=(0, 1), expand=True)
+            table.add_column(style="#565F89", justify="left", width=10)
+            table.add_column(style="#00E0FF", justify="right")
+
+            status = _format_status_colored(target_data.get("status"))
+            table.add_row("Status", status)
+            table.add_row("Server", (target_data.get("server") or "-")[:18])
+            table.add_row("Latency", f"{target_data.get('latency')}ms" if target_data.get("latency") else "N/A")
+            table.add_row("Size", f"{target_data.get('size', 0):,} B")
+            table.add_row("Title", (target_data.get("title") or "-")[:30])
+            table.add_row("Tech", ", ".join(target_data.get("tech", [])[:4]) or "-")
+            return table
+
+        # HTTP Panel
+        http_panel = Panel(
+            _create_proto_table(http),
+            title="[bold #FFD700]HTTP[/]",
+            border_style="#00A3FF",
+            expand=True
+        )
+
+        # HTTPS Panel
+        https_panel = Panel(
+            _create_proto_table(https),
+            title="[bold #FFD700]HTTPS[/]",
+            border_style="#00A3FF",
+            expand=True
+        )
+
+        layout_grid = Table.grid(padding=(0, 2), expand=True)
+        layout_grid.add_column(ratio=1)
+        layout_grid.add_column(ratio=1)
+        layout_grid.add_row(http_panel, https_panel)
+
+        return layout_grid
+
+    @staticmethod
+    def _honeypot_analysis(result: dict):
+        score = result.get("honeypot_score", 0)
+        label = result.get("honeypot_label", "Unlikely")
+        findings = result.get("honeypot_findings", [])
+
+        width = 30
+        filled = int(score * width)
+        bar = ""
+        for i in range(width):
+            if i < filled:
+                color = "#00E0FF" if i < (width * 0.5) else "#00A3FF"
+                bar += f"[{color}]█[/]"
+            else:
+                bar += "[#292a3a]█[/]"
+
+        text_color = "#F7768E" if score >= 0.75 else "#FFD700" if score >= 0.5 else "#73DACA"
+
+        analysis = Table.grid(padding=(0, 1))
+        analysis.add_column()
+        analysis.add_row(bar)
+        analysis.add_row(f"[bold {text_color}]{score * 100:.0f}% ―  {label}[/]")
+
+        if findings:
+            for f in findings:
+
+                analysis.add_row(f"[#BB9AF7]● [/] [{text_color}]{f[:80]}[/]")
+        else:
+            analysis.add_row(" [#565F89]○ No suspicious bait detected[/]")
+
+        return analysis
     def action_screenshot(self):
         def refresh():
             self.query_one(
@@ -244,42 +285,78 @@ class FullscreenDetail(Screen):
             callback=refresh
         )
 
+    @work(thread=True)
+    def _run_port_scan_worker(self, value):
+        ports = parse_port(value)
+        self.notify(f"Scanning {len(ports)} ports...")
+        result = scan_port(
+            self.result["subdomain"],
+            ports
+        )
+        self.result["ports"] = result
+        self.app.call_from_thread(self._refresh_detail)
+
     def action_scan_port(self):
         def handle_input(value):
             if not value:
                 return
-            ports = parse_port(value)
-            self.notify(f"Scanning {len(ports)} ports...")
-            result = scan_port(
-                self.result["subdomain"],
-                ports
-            )
-            self.result["ports"] = result
+            self._run_port_scan_worker(value)
+        self.app.push_screen(PortInputModal(), callback=handle_input)
 
-            self.query_one(
-                "#fullscreen-content",
-                Static
-            ).update(self._build_content())
-
-        self.app.push_screen(
-            PortInputModal(),
-            callback=handle_input
-        )
-
+    @work(thread=True)
     def action_deep_scan(self):
         from analysis import run_deep_scan
-        import threading
-
         def on_module_done(key, states):
+            if key == 'tech_version':
+                self._merge_deep_tech_to_protocols()
             self.app.call_from_thread(self._refresh_detail)
-
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
-        threading.Thread(
-            target=run_deep_scan,
-            args=(self.result, on_module_done),
-            daemon=True
-        ).start()
+        run_deep_scan(self.result, on_module_done)
+
+    def _merge_deep_tech_to_protocols(self):
+        deep_data = self.result.get("deep_scan", {})
+        tech_module = deep_data.get('tech_version', {})
+
+        status_obj = tech_module.get("status")
+        if status_obj and status_obj.value == 'done':
+            data_content = tech_module.get('data')
+            if data_content and 'summary' in data_content:
+                new_tech_list = []
+                for tech_name, version in data_content['summary'].items():
+                    if version and version != 0:
+                        new_tech_list.append(f"{tech_name}: {version}")
+                    else:
+                        new_tech_list.append(tech_name)
+
+                for proto in ('http', 'https'):
+                    if proto not in self.result:
+                        continue
+                    current_tech = self.result[proto].get('tech') or []
+                    combined = list(set(current_tech + new_tech_list))
+                    final_list = []
+                    for item in combined:
+                        is_redundant = False
+                        clean_item = item.lower().replace(" ", "")
+                        merk_item = clean_item.split(':')[0].split('/')[0].strip()
+
+                        for other in combined:
+                            if item == other: continue
+
+                            clean_other = other.lower().replace(" ", "")
+                            merk_other = clean_other.split(':')[0].split('/')[0].strip()
+
+                            if merk_item == merk_other:
+                                if (':' not in item and '/' not in item) and (':' in other or '/' in other):
+                                    is_redundant = True
+                                    break
+
+                                if len(other) > len(item):
+                                    is_redundant = True
+                                    break
+                        if not is_redundant:
+                            final_list.append(item)
+                    self.result[proto]['tech'] = sorted(final_list)
 
     def _refresh_detail(self):
         try:
@@ -294,15 +371,15 @@ class FullscreenDetail(Screen):
 
 #Helper
 def _make_table():
-    t = Table.grid(padding=(0, 2))
-    t.add_column(style="#565F89", justify="right", min_width=14)
-    t.add_column(style="#00E0FF", min_width=40)
-    return t
+    table = Table.grid(padding=(0, 2))
+    table.add_column(style="#565F89", justify="right", min_width=14)
+    table.add_column(style="#00E0FF", min_width=40)
+    return table
 
 def _section_rule(title: str):
-    return Rule(title=f"[bold #00A3FF]{title}[/]", style="#1A1B26")
+    return Rule(title=f"[bold #00A3FF]{title}[/]", style="#1A1B26", align='left')
 
-def _status_colored(status: int):
+def _format_status_colored(status: int):
     if status == 200:
         return f"[#73DACA]{status} OK[/]"
     elif status in [401, 402, 403]:

@@ -11,33 +11,38 @@ import socket
 import random
 import time
 
-
 log = get_logger("validate")
 
-TECH_SIGNATURES = {
-    "Cloudflare": ["cloudflare", "cf-ray"],
-    "PHP": ["x-powered-by: php", "php/"],
-    "WordPress": ["wordpress", "wp-"],
-    "Nginx": ["nginx"],
-    "Apache": ["apache"],
-    "Laravel": ["laravel_session", "laravel"],
-    "Django": ["csrftoken"],
-    "ASP.NET": ["x-aspnet-version", "x-powered-by: asp.net"],
-    "Node.js": ["x-powered-by: express"],
-    "Varnish": ["x-varnish", "via: varnish"],
-    "IIS": ["microsoft-iis"],
-}
-
 def _detech_tech(header: dict) -> list[str]:
+    patterns = {
+        "PHP": r"PHP\/([\d.]+)",
+        "Nginx": r"nginx\/([\d.]+)",
+        "Apache": r"Apache\/([\d.]+)",
+        "OpenSSL": r"OpenSSL\/([\w\d.]+)",
+        "LiteSpeed": r"LiteSpeed",
+        "Express": r"Express",
+        "ASP.NET": r"ASP\.NET",
+        "Cloudflare": r"cloudflare",
+    }
+
     if not header:
         return []
-    header_str = " ".join(
-        f"{k.lower()}: {v.lower()}" for k, v in header.items()
+
+    detected = []
+    header_str = "\n".join(
+        f"{k}: {v}" for k, v in header.items()
     )
-    return sorted(
-        name for name, kws in TECH_SIGNATURES.items()
-        if any(kw in header_str for kw in kws)
-    )
+
+    for name, pattern in patterns.items():
+        match = re.search(pattern, header_str, re.IGNORECASE)
+        if match:
+            if match.lastindex:
+                version = match.group(1)
+                detected.append(f"{name}/{version}")
+            else:
+                detected.append(name)
+
+    return sorted(list(set(detected)))
 
 def _extract_title(res) -> str:
     try:
