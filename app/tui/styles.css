@@ -39,14 +39,29 @@ Screen {
     display: block;
 }
 
-#stats-bar {
+StatsBar {
     dock: bottom;
     height: 3;
     background: #1A1B26;
-    border-top: solid #FFD700;
-    color: #00A3FF;
+    border-top: solid #00A3FF;
+    layout: horizontal;
 }
 
+#btn-toggle-stats {
+    width: 3;
+    height: 1;
+    margin: 0 1;
+    background: #00A3FF;
+    color: white;
+    border: none;
+}
+
+#stats-text {
+    width: auto;
+    height: 1;
+    content-align: left middle;
+    color: #00E0FF;
+}
 DataTable {
     height: 1fr;
     background: #0B0E14;

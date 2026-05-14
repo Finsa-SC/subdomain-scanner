@@ -12,7 +12,7 @@ THREAD = int(os.getenv("THREAD", 5))
 DEBUG = os.getenv("DEBUG", "false").lower().strip() == "true"
 DELAY = float(os.getenv("DELAY", 0.0))
 
-VERSION = "1.2.0"
+VERSION = "1.0.0"
 
 def main():
     temp_path = None
@@ -38,7 +38,7 @@ def main():
         banner = "[ Subv ]"
     parser = argparse.ArgumentParser(
         prog="subv",
-        description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions",
+        description=f"{banner}\nSubdomain recon tool - FinSky IT Solutions\nsubv {VERSION}",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="[!] WARNING: Use with caution. Scanning will trigger logs on the target server."
     )
@@ -56,7 +56,6 @@ def main():
     config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
     config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 5)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
-    config_group.add_argument("-all", action="store_true", help="Use all available resources for scanning")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
     config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
@@ -65,10 +64,8 @@ def main():
     filter_group.add_argument("-A", "--available", action="store_true", help="Only show domain with 200 status code")
     filter_group.add_argument("-L", "--live", action="store_true", help="Only show domain with 200 status code")
     filter_group.add_argument("-w", "--no-wildcard", action="store_true", help="Skip if wildcard DNS detected")
-    filter_group.add_argument("--ip", action="store_true", help="Show IP address instead of subdomain")
-    filter_group.add_argument("--color", action="store_true", help="Color output text")
-    filter_group.add_argument("--min-size", type=int, help="Filter response smaller than N bytes")
-    filter_group.add_argument("--max-size", type=int, help="Filter response larger than N bytes")
+    filter_group.add_argument("--ip", type=str, help="Show IP address instead of subdomain")
+    filter_group.add_argument("-q", "--query", type=str,  help="Filter query (e.g. 'status:200 server:nginx NOT honeypot:true')")
 
     # 4. EXPORT OPTIONS
     export_group = parser.add_argument_group('EXPORT OPTIONS')
@@ -80,14 +77,13 @@ def main():
     profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
     profile_group.add_argument("--screenshot", action="store_true", help="Take screenshot to each subdomain with 200 status code")
 
-
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)
 
     # Program
     parser.add_argument("--purge", action="store_true", help="Purge entire data in results directory")
-    parser.add_argument("-V", "--version", action="version", version=f"subf {VERSION}")
+    parser.add_argument("-V", "--version", action="version", version=f"subv {VERSION}")
 
     #purge
     if "--purge" in sys.argv:
@@ -97,6 +93,16 @@ def main():
         sys.exit(0)
 
     args = parser.parse_args()
+
+    filter_query = args.query or ""
+    if args.no_wildcard:
+        filter_query += " wildcard:no"
+    if args.available:
+        filter_query += " status:available"
+    if args.live:
+        filter_query += " status:live"
+    if args.ip:
+        filter_query += f" ip:{args.ip}"
 
     config = ScanConfig(
         timeout=args.timeout,
@@ -110,11 +116,11 @@ def main():
         honeypot=args.honeypot,
         screenshot=args.screenshot,
         dns=args.dns,
-        port=parse_port(args.port)
+        port=parse_port(args.port),
+        query=filter_query
     )
 
     set_config(config)
-
     domain_or_file = args.domain or args.domain_list
 
     from tui import run_tui

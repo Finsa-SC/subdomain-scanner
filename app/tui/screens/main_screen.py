@@ -9,7 +9,6 @@ from ..filter_parser import FilterParser
 import threading
 from utils import can_screenshot, take_screenshot, do_screenshot
 
-
 class MainScreen(Screen):
     BINDINGS = [
         Binding("slash", "focus_filter", "Filter", key_display="/"),
@@ -37,7 +36,9 @@ class MainScreen(Screen):
         self._rendered_count = 0
 
     def compose(self):
+        initial_query = self.config.query if self.config.query else ""
         yield Input(
+            value=initial_query,
             placeholder="Filter: status:200, server:nginx, NOT status:404",
             id="filter-input"
         )
@@ -75,25 +76,29 @@ class MainScreen(Screen):
         if event.input.id == "filter-input":
             self.apply_filter()
 
+            table = self.query_one("#subdomain-table", SubdomainTable)
+            table.focus()
+
     def apply_filter(self):
         filter_input = self.query_one("#filter-input", Input)
         query = filter_input.value
         table = self.query_one("#subdomain-table", SubdomainTable)
 
         if not query.strip():
-            table.update_data(self.results)
-            self.filtered_results = self.results.copy()
+            self.filtered_results = list(self.results)
         else:
             self.filtered_results = self.parser.parse(query, self.results)
-            table.update_data(self.filtered_results)
+        table.update_data(self.filtered_results)
+        self.update_stats()
 
     def update_stats(self):
-        status_bar = self.query_one("#status-bar", StatsBar)
+        status_bar = self.query_one("#stats-bar", StatsBar)
         status_bar.update_stats(
             total=len(self.results),
             filtered=len(self.filtered_results),
             live=sum(1 for r in self.results if r.get("is_live")),
-            honeypots=sum(1 for r in self.results if r.get("is_honeypot"))
+            honeypots=sum(1 for r in self.results if r.get("is_honeypot")),
+            wildcard=sum(1 for r in self.results if r.get('wildcard'))
         )
 
     def action_focus_filter(self):
