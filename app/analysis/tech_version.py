@@ -102,7 +102,7 @@ def _match_version(pattern: str, text: str) -> str | None:
             g = match.group(i)
             if g and g.strip():
                 return g.strip()
-    return "detected"
+    return None
 
 def _scan_headers(headers: dict) -> list[dict]:
     results = []
@@ -118,7 +118,7 @@ def _scan_headers(headers: dict) -> list[dict]:
         version = _match_version(pattern["pattern"], str(val))
         if not version:
             continue
-        key = f"{pattern['tech']}:{version}"
+        key = f"{pattern['tech']}:{version}" if version else pattern['tech']
         if key in seen:
             continue
         seen.add(key)

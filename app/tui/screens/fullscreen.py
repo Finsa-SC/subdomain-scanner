@@ -217,8 +217,8 @@ class FullscreenDetail(Screen):
             table.add_row("Server", (target_data.get("server") or "-")[:18])
             table.add_row("Latency", f"{target_data.get('latency')}ms" if target_data.get("latency") else "N/A")
             table.add_row("Size", f"{target_data.get('size', 0):,} B")
-            table.add_row("Title", (target_data.get("title") or "-")[:18])
-            table.add_row("Tech", ", ".join(target_data.get("tech", [])[:2]) or "-")
+            table.add_row("Title", (target_data.get("title") or "-")[:30])
+            table.add_row("Tech", ", ".join(target_data.get("tech", [])[:4]) or "-")
             return table
 
         # HTTP Panel
