@@ -58,10 +58,11 @@ def take_screenshot(result: dict, open_image: bool = False):
         p, browser = ensure_chromium()
 
         page = browser.new_page(
-            user_agent=header.get('User-Agent')
+            user_agent=header.get('User-Agent'),
+            ignore_https_errors=True
         )
         page.set_extra_http_headers(header)
-        page.goto(url, timeout=15000, wait_until="domcontentloaded")
+        page.goto(url, timeout=20000, wait_until="domcontentloaded")
         page.wait_for_timeout(random.uniform(2000, 4000))
         page.screenshot(path=str(out_path), full_page=True)
 
