@@ -53,17 +53,7 @@ class FullscreenDetail(Screen):
 
         # Header identity
         sections.append(self._header_identity(r))
-
-        # General
-        sections.append(Rule(title="[bold #00A3FF]General[/]", style="#1A1B26", align='left'))
-        gen = _make_table()
-        gen.add_row("Subdomain", subdomain)
-        gen.add_row("IP Address", ip)
-        gen.add_row("Wildcard", "[#00E0FF]Detected[/]" if r.get('wildcard') else "[#565F89]No[/]")
-        gen.add_row("Timestamp", r.get("timestamp", "-") or "-")
-        gen.add_row("Sign", r.get("signing", "[ ]"))
-        sections.append(gen)
-
+        
         # Protocol
         sections.append(Rule(title="[bold #00A3FF]PROTOCOL[/]", style="#1A1B26", align='left'))
         protocol_section = self._protocol_comparison(http, https)
