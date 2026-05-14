@@ -1,3 +1,4 @@
+from pygments.lexers.ruby import FancyLexer
 from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
@@ -10,6 +11,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
+from textual_dev import redirect_output
+
 from utils import do_screenshot, parse_port, scan_port, get_logger
 from ..widgets import _format_redirect
 
@@ -55,7 +58,7 @@ class FullscreenDetail(Screen):
         
         # Protocol
         sections.append(Rule(title="[bold #00A3FF]PROTOCOL[/]", style="#1A1B26", align='left'))
-        protocol_section = self._protocol_comparison(http, https)
+        protocol_section = self._protocol_comparison(r)
         sections.append(protocol_section)
 
         # Ports
@@ -180,15 +183,28 @@ class FullscreenDetail(Screen):
             title_align="left"
         )
     @staticmethod
-    def _protocol_comparison(http: dict, https: dict) -> Table:
-        def _create_proto_table(target_data):
+    def _protocol_comparison(data:dict) -> Table:
+        http = data.get('http', {})
+        https = data.get('https', {})
+        redir = _format_redirect(http.get('redir'), data.get('subdomain'))
+        is_upgrade = 'upgrade' in redir.lower()
+
+        def _create_proto_table(target_data, is_http: bool = False):
+
             table = Table.grid(padding=(0, 1), expand=True)
             table.add_column(style="#565F89", justify="left", width=10)
             table.add_column(style="#00E0FF", justify="right")
 
             status = target_data.get("status")
             status_str = _format_status_colored(status)
-            table.add_row("Status", status_str if status not in (301, 302) else f"{status_str} -> {_format_redirect(target_data.get('redir'))}")
+            if is_http and status in (301, 302, 307, 308):
+                if is_upgrade:
+                    res_status = f"[#9ECE6A]{str(status)}[/] {redir}"
+                else:
+                    res_status = f"{status_str} -> {redir}"
+            else:
+                res_status = status_str
+            table.add_row("Status", res_status)
             table.add_row("Server", (target_data.get("server") or "-")[:18])
             table.add_row("Latency", f"{target_data.get('latency')}ms" if target_data.get("latency") else "N/A")
             table.add_row("Size", f"{target_data.get('size', 0):,} B")
@@ -196,27 +212,23 @@ class FullscreenDetail(Screen):
             table.add_row("Tech", ", ".join(target_data.get("tech", [])[:4]) or "-")
             return table
 
-        # HTTP Panel
-        http_panel = Panel(
-            _create_proto_table(http),
-            title="[bold #FFD700]HTTP[/]",
-            border_style="#00A3FF",
-            expand=True
-        )
-
-        # HTTPS Panel
-        https_panel = Panel(
-            _create_proto_table(https),
-            title="[bold #FFD700]HTTPS[/]",
-            border_style="#00A3FF",
-            expand=True
-        )
-
-        layout_grid = Table.grid(padding=(0, 2), expand=True)
+        layout_grid = Table.grid(padding=(0, 0), expand=True)
         layout_grid.add_column(ratio=1)
+        layout_grid.add_column(width=5, justify='center', min_width=5)
         layout_grid.add_column(ratio=1)
-        layout_grid.add_row(http_panel, https_panel)
 
+        if is_upgrade:
+            arrow = Text.from_markup("\n\n\n[#73DACA]➤[/]", justify="center")
+            h_border, s_border = "#565F89", "#73DACA"
+        else:
+            arrow = Text("")
+            h_border, s_border = "#00A3FF", "#00A3FF"
+
+        layout_grid.add_row(
+            Panel(_create_proto_table(http, True), title="[bold #FFD700]HTTP[/]", border_style=h_border, expand=True),
+            arrow,
+            Panel(_create_proto_table(https), title="[bold #FFD700]HTTPS[/]", border_style=s_border, expand=True)
+        )
         return layout_grid
 
     @staticmethod
