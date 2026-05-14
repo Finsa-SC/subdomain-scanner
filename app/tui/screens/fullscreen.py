@@ -55,7 +55,7 @@ class FullscreenDetail(Screen):
         sections.append(self._header_identity(r))
 
         # General
-        sections.append(Rule(title="[bold #00A3FF]General[/]", style="#1A1B26"))
+        sections.append(Rule(title="[bold #00A3FF]General[/]", style="#1A1B26", align='left'))
         gen = _make_table()
         gen.add_row("Subdomain", subdomain)
         gen.add_row("IP Address", ip)
@@ -65,6 +65,7 @@ class FullscreenDetail(Screen):
         sections.append(gen)
 
         # Protocol
+        sections.append(Rule(title="[bold #00A3FF]PROTOCOL[/]", style="#1A1B26", align='left'))
         protocol_section = self._protocol_comparison(http, https)
         sections.append(protocol_section)
 
@@ -84,7 +85,7 @@ class FullscreenDetail(Screen):
                 sections.append(Text("  No open ports detected", style="#565F89"))
 
         # Honeypot
-        sections.append(Rule(title="[bold #00A3FF]HONEYPOT ANALYSIS[/]", style="#1A1B26"))
+        sections.append(Rule(title="[bold #00A3FF]HONEYPOT ANALYSIS[/]", style="#1A1B26", align='left'))
         sections.append(self._honeypot_analysis(r))
 
         # Deep Scan Results
@@ -131,7 +132,7 @@ class FullscreenDetail(Screen):
             sections.append(Text("  No cookies detected", style="#565F89"))
 
         # Tech detection
-        sections.append(Rule(title="[bold #00A3FF]Technology[/]", style="#1A1B26"))
+        sections.append(Rule(title="[bold #00A3FF]Technology[/]", style="#1A1B26", align='left'))
         tech = list(set((http.get("tech") or []) + (https.get("tech") or [])))
         tech_table = _make_table()
         if tech:
@@ -142,7 +143,7 @@ class FullscreenDetail(Screen):
             sections.append(Text("  No tech detected", style="#565F89"))
 
         # Headers http
-        sections.append(Rule(title="[bold #00A3FF]HTTP Headers[/]", style="#1A1B26"))
+        sections.append(Rule(title="[bold #00A3FF]HTTP Headers[/]", style="#1A1B26", align='left'))
         h_header = http.get("raw_header") or {}
         if h_header:
             ht2 = _make_table()
@@ -153,7 +154,7 @@ class FullscreenDetail(Screen):
             sections.append(Text("  No headers captured", style="#565F89"))
 
         # Headers https
-        sections.append(Rule(title="[bold #00A3FF]HTTPS Headers[/]", style="#1A1B26"))
+        sections.append(Rule(title="[bold #00A3FF]HTTPS Headers[/]", style="#1A1B26", align='left'))
         s_header = https.get("raw_header") or {}
         if s_header:
             st2 = _make_table()
@@ -177,8 +178,6 @@ class FullscreenDetail(Screen):
         ip = result.get("ip_address", "No IP")
         is_live = result.get("is_live", False)
         wildcard = result.get("wildcard", False)
-        score = result.get("honeypot_score", 0)
-        label = result.get("honeypot_label", "Unlikely")
 
         status_color = "#73DACA" if is_live else "#565F89"
         status_text = "● Live" if is_live else "● Offline"
@@ -190,13 +189,10 @@ class FullscreenDetail(Screen):
         status_display = f"[{status_color}]{status_text}[/]"
 
         identity.add_row(sub_display, status_display)
+        identity.add_row(f"[italic #00A3FF]{ip}[/]", "")
 
-        badges = []
         if wildcard:
-            badges += "  [#00E0FF]◈ Wildcard[/]"
-
-        extra_info = " ".join(badges)
-        identity.add_row(f"[italic #00A3FF]{ip}[/]", extra_info)
+            identity.add_row("[#00E0FF]◈ Wildcard Detected[/]", "")
 
         return Panel(
             identity,
@@ -381,7 +377,7 @@ def _make_table():
     return table
 
 def _section_rule(title: str):
-    return Rule(title=f"[bold #00A3FF]{title}[/]", style="#1A1B26")
+    return Rule(title=f"[bold #00A3FF]{title}[/]", style="#1A1B26", align='left')
 
 def _format_status_colored(status: int):
     if status == 200:
