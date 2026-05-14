@@ -88,6 +88,7 @@ def open_image_popup(path: str):
 
 def ensure_chromium():
     from playwright.sync_api import sync_playwright
+    proxy_url = os.getenv('PROXY_URL', None)
     try:
         play = sync_playwright().start()
         args = [
@@ -99,7 +100,6 @@ def ensure_chromium():
         if random.random() > 0.5:
             args.append('--disable-gpu')
 
-        proxy_url = os.getenv('PROXY_URL', None)
         browser = play.chromium.launch(
             args=args,
             proxy={'server': proxy_url} if proxy_url else None
@@ -118,7 +118,6 @@ def ensure_chromium():
             "--disable-dev-shm-usage",
             "--disable-blink-features=AutomationControlled"
         ]
-        proxy_url = os.getenv('PROXY_URL', None)
         browser = play.chromium.launch(
             args=args,
             proxy={'server': proxy_url} if proxy_url else None
