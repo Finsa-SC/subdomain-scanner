@@ -88,7 +88,10 @@ def open_image_popup(path: str):
 
 def ensure_chromium():
     from playwright.sync_api import sync_playwright
-    proxy_url = os.getenv('PROXY_URL', None)
+    raw_proxy = os.getenv('PROXY_URL', '').strip()
+    proxy_url = None
+    if raw_proxy and raw_proxy.lower() != 'none':
+        proxy_url = raw_proxy
     try:
         play = sync_playwright().start()
         args = [
