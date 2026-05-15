@@ -1,4 +1,3 @@
-from pygments.lexers.ruby import FancyLexer
 from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
