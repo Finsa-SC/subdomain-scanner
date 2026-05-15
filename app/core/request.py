@@ -22,7 +22,7 @@ def send_request(
         custom_dns: str = None,
         allow_redirects: bool = False
 ) -> requests.Response | None:
-    
+
     config = get_config()
     try:
         stealth_header, browser_engine = stealth.get_payload()
@@ -131,9 +131,9 @@ def _do_request(
 ):
     last_error = None
 
-    for attempt in range(retries + 1):
+    for retry_count in range(retries + 1):
         try:
-            timeout = base_timeout + attempt
+            timeout = base_timeout + retry_count
 
             return requests.get(
                 url=url,
@@ -153,12 +153,14 @@ def _do_request(
                 "EOF",
                 "NETWORK",
             ]
+            if 'SSL' in err or 'CERTIFICATE' in err:
+                raise e
             if any(x in err for x in transient):
                 log.debug(
-                    f"Retry [{attempt+1}/{retries}] "
+                    f"Retry [{retry_count+1}/{retries}] "
                     f"timeout={timeout}s -> {url}"
                 )
-                time.sleep(0.5 * (attempt + 1))
+                time.sleep(0.5 * (retry_count + 1))
                 continue
             raise e
     raise last_error
