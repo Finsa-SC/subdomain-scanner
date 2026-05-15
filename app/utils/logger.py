@@ -2,11 +2,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-logging.basicConfig(
-    filename="/tmp/subv.log",
-    level=logging.DEBUG,
-)
-
 def get_logger(name: str) -> logging.Logger:
     log_dir = Path('logs')
     log_dir.mkdir(exist_ok=True)
