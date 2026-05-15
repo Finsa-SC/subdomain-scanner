@@ -116,30 +116,25 @@ PortInputModal {
 
 ActionModal {
     align: center middle;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
 }
 
 #action-modal-container {
-    width: 50;
-    height: auto;
-    max-height: 15;
+    width: 120;
+    height: 24;
     border: double #FFD700;
-    background: #1A1B26;
+    background: #0B0E14;
     padding: 1;
+    layout: vertical;
 }
 
-SelectionList {
-    background: transparent;
-    border: none;
-    height: auto;
+#action-list {
+    height: 1fr;
+    width: 1fr;
+    margin-bottom: 1;
 }
 
-SelectionList > .selection-list--button {
-    color: #00E0FF;
-}
-
-SelectionList > .selection-list--button.-selected {
-    background: #00A3FF 30%;
-    color: #FFD700;
-    text-style: bold;
+#action-preview {
+    height: 7;
+    width: 1fr;
 }

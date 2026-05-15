@@ -1,4 +1,3 @@
-from curl_cffi import curl
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -54,11 +53,11 @@ class ActionModal(ModalScreen):
         self._update_preview()
 
     def on_key(self, event):
-            if event.key == 'j' or event.key == 'n':
+            if event.key == 'down':
                 self.current_index = (self.current_index + 1) % len(self.action)
                 self._update_preview()
                 event.stop()
-            elif event.key == 'k' or event.key == 'p':
+            elif event.key == 'up':
                 self.current_index = (self.current_index - 1) % len(self.action)
                 self._update_preview()
                 event.stop()
