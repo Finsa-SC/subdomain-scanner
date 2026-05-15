@@ -90,18 +90,18 @@ def main():
     if "--purge" in sys.argv:
         target = Path("results")
         shutil.rmtree(target, ignore_errors=True)
-        print("     [✓] results directory purged")
+        print("\t[✓] results directory purged")
         sys.exit(0)
     elif '--log' in sys.argv:
         target = Path("logs/latest.log")
         if not target.exists():
-            print("     [x] No logs found!")
+            print("\t[x] No logs found!")
             sys.exit(0)
-        print("     [C] Tailing on latest log...")
+        print("\t[C] Tailing on latest log...")
         try:
             os.system('tail -f logs/latest.log')
         except KeyboardInterrupt:
-            print('     [C] Exit log viewer.')
+            print('\t[C] Exit log viewer.')
         sys.exit(0)
 
     args = parser.parse_args()
