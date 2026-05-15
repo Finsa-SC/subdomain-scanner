@@ -7,7 +7,9 @@ from ..widgets.detail_panel import DetailPanel
 from ..widgets.stats_bar import StatsBar
 from ..filter_parser import FilterParser
 import threading
-from utils import can_screenshot, take_screenshot, do_screenshot
+from utils import can_screenshot, take_screenshot, do_screenshot, get_logger
+
+log = get_logger('main_screen')
 
 class MainScreen(Screen):
     BINDINGS = [
@@ -66,8 +68,6 @@ class MainScreen(Screen):
     def on_subdomain_found(self, results):
         def update_ui():
             self.results.append(results)
-            with open("/tmp/debug.log", "a") as f:
-                f.write(f"[ui] update_ui called, subdomain={results.get('subdomain')}, total={len(self.results)}\n")
             self.apply_filter()
             self.update_stats()
         self.app.call_from_thread(update_ui)
@@ -164,6 +164,7 @@ class MainScreen(Screen):
                 pyperclip.copy(selected['subdomain'])
                 self.notify(f"Copied: {selected['subdomain']}")
             except:
+                log.error(f"Clipboard not available")
                 self.notify("Clipboard not available", severity="error")
 
     def action_open_browser(self):

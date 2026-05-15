@@ -58,10 +58,11 @@ def take_screenshot(result: dict, open_image: bool = False):
         p, browser = ensure_chromium()
 
         page = browser.new_page(
-            user_agent=header.get('User-Agent')
+            user_agent=header.get('User-Agent'),
+            ignore_https_errors=True
         )
         page.set_extra_http_headers(header)
-        page.goto(url, timeout=15000, wait_until="domcontentloaded")
+        page.goto(url, timeout=20000, wait_until="domcontentloaded")
         page.wait_for_timeout(random.uniform(2000, 4000))
         page.screenshot(path=str(out_path), full_page=True)
 
@@ -87,6 +88,10 @@ def open_image_popup(path: str):
 
 def ensure_chromium():
     from playwright.sync_api import sync_playwright
+    raw_proxy = os.getenv('PROXY_URL', '').strip()
+    proxy_url = None
+    if raw_proxy and raw_proxy.lower() != 'none':
+        proxy_url = raw_proxy
     try:
         play = sync_playwright().start()
         args = [
@@ -98,7 +103,6 @@ def ensure_chromium():
         if random.random() > 0.5:
             args.append('--disable-gpu')
 
-        proxy_url = os.getenv('PROXY_URL', None)
         browser = play.chromium.launch(
             args=args,
             proxy={'server': proxy_url} if proxy_url else None
@@ -117,7 +121,6 @@ def ensure_chromium():
             "--disable-dev-shm-usage",
             "--disable-blink-features=AutomationControlled"
         ]
-        proxy_url = os.getenv('PROXY_URL', None)
         browser = play.chromium.launch(
             args=args,
             proxy={'server': proxy_url} if proxy_url else None
