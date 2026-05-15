@@ -6,15 +6,49 @@ log = get_logger("Launcher")
 load_dotenv()
 DEBUG = os.getenv("DEBUG", '').lower().strip() == 'true'
 
+nmap = "NMAP"
+ffuf = "FFUF"
+sqlmap = "SQLMAP"
+
 COMMAND_TEMPLATES = {
-    "nmap_quick": "nmap -T4 -F {target}",
-    "nmap_full": "nmap -sV -sC -p- {target}",
-    "ffuf_dir": "ffuf -u https://{target}/FUZZ -w /usr/share/wordlists/dirb/common.txt",
-    "ffuf_json": "ffuf -u https://{target} -X POST -H 'Content-Type: application/json' -d 'FUZZ'",
-    "sqlmap": "sqlmap -u https://{target} --batch --banner",
-    "whois": "whois {target}",
-    "dig": "dig any {target} +short",
-    "curl_head": "curl -I https://{target}"
+    "nmap_quick": {
+        "tools": nmap,
+        "description": "Fast port scan",
+        "command": "nmap -T4 -F {target}"},
+    "nmap_full": {
+        "tool": nmap,
+        "description": "Full port scan",
+        "command": "nmap -sV -sC -p- {target}"
+    },
+    "ffuf_dir": {
+        "tool": ffuf,
+        "description": "Directory brute force",
+        "command": "ffuf -u https://{target}/FUZZ -w /usr/share/wordlists/dirb/common.txt"
+    },
+    "ffuf_json": {
+        "tool": ffuf,
+        "description": "",
+        "command": "ffuf -u https://{target} -X POST -H 'Content-Type: application/json' -d 'FUZZ'"
+    },
+    "sqlmap": {
+        "tool": sqlmap,
+        "description": "",
+        "command": "sqlmap -u https://{target} --batch --banner"
+    },
+    "whois": {
+        "tool": "WHOIS",
+        "description": "",
+        "command": "whois {target}"},
+    "dig": {
+        "tool": "DIG",
+        "description": "",
+        "command": "dig any {target} +short"
+    },
+    "curl_head": {
+        "tool": "CURL",
+        "description": "",
+        "command": "curl -I https://{target}}"
+    }
 }
 
 def launch_terminal(action_key: str, target: str, custom_cmd: str = None):
