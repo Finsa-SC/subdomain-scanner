@@ -48,6 +48,36 @@ COMMAND_TEMPLATES = {
         "tool": "CURL",
         "description": "HTTP header inspection",
         "command": "curl -I https://{target}"
+    },
+    "wafw00w": {
+        "tool": "WAFW00F",
+        "description": "Web Application Firewall fingerprinting",
+        "command": "wafw00f https://{target}"
+    },
+    "searchploit": {
+        "tool": "SEARCHPLOIT",
+        "description": "Exploit database local search",
+        "command": "searchploit {target}"
+    },
+    "nicto": {
+        "tool": "NIKTO",
+        "description": "Web server vulnerability scanning",
+        "command": "nikto -h https://{target}"
+    },
+    "nuclei_single": {
+        "tool": "NUCLEI",
+        "description": "Fast vulnerability template scanning",
+        "command": "nuclei -u https://{target}"
+    },
+    "whatweb": {
+        "tool": "WHATWEB",
+        "description": "Next-gen web scanner technology identifier",
+        "command": "whatweb -a 3 https://{target}"
+    },
+    "theharvester": {
+        "tool": "THEHARVESTER",
+        "description": "OSINT email, names, subdomains gathering",
+        "command": "theHarvester -d {target} -b all"
     }
 }
 
