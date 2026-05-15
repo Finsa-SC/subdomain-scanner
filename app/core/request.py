@@ -1,3 +1,5 @@
+import time
+
 from .stealth import StealthMode
 from models import DNS_PROVIDERS
 from utils import get_logger
@@ -108,3 +110,47 @@ def resolve_ip(sub: str, custom_dns: str, record_type: str) -> str | None:
         return None
     except Exception:
         return None
+
+def _do_request(
+url,
+    headers,
+    impersonate,
+    allow_redirects,
+    base_timeout,
+    retries,
+):
+    last_error = None
+
+    for attempt in range(retries + 1):
+        try:
+            timeout = base_timeout + attempt
+
+            return requests.get(
+                url=url,
+                timeout=timeout,
+                headers=headers,
+                impersonate=impersonate,
+                allow_redirects=allow_redirects,
+                verify=False,
+            )
+        except requests.errors.RequestsError as e:
+            last_error = e
+            err = str(e).upper()
+            transient = [
+                "TIMEDOUT",
+                "CONNECTION RESET",
+                "FAILED TO CONNECT",
+                "EOF",
+                "NETWORK",
+            ]
+            if any(x in err for x in transient):
+                log.debug(
+                    f"Retry [{attempt+1}/{retries}] "
+                    f"timeout={timeout}s -> {url}"
+                )
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            raise e
+    raise last_error
+
+

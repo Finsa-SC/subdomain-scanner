@@ -10,7 +10,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-from textual_dev import redirect_output
 
 from utils import do_screenshot, parse_port, scan_port, get_logger
 from ..widgets import _format_redirect
