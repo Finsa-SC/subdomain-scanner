@@ -1,7 +1,7 @@
 import time
 
 from .stealth import StealthMode
-from models import DNS_PROVIDERS
+from models import DNS_PROVIDERS, get_config
 from utils import get_logger
 
 from curl_cffi import requests
@@ -15,7 +15,15 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 stealth = StealthMode()
 log = get_logger("request")
 
-def send_request(proto: str ,sub: str, timeout: float, custom_dns: str = None, allow_redirects: bool = False) -> requests.Response | None:
+def send_request(
+        proto: str ,
+        sub: str,
+        timeout: float,
+        custom_dns: str = None,
+        allow_redirects: bool = False
+) -> requests.Response | None:
+    
+    config = get_config()
     try:
         stealth_header, browser_engine = stealth.get_payload()
 
@@ -31,13 +39,13 @@ def send_request(proto: str ,sub: str, timeout: float, custom_dns: str = None, a
         else:
             url = f"{proto}://{sub}"
 
-        res = requests.get(
+        res = _do_request(
             url=url,
-            timeout=timeout,
+            base_timeout=timeout,
             headers=stealth_header,
             impersonate=browser_engine,
             allow_redirects=allow_redirects,
-            verify=False,
+            retries=config.retry
         )
 
         return res
@@ -52,6 +60,8 @@ def send_request_with_error(
         custom_dns: str = None,
         allow_redirects: bool = False,
     ) -> tuple[requests.Response | None, str | None]:
+    config = get_config()
+
     try:
         stealth_header, browser_engine = stealth.get_payload()
 
@@ -66,13 +76,13 @@ def send_request_with_error(
                 return None, "DNS_ERR"
         else:
             url = f"{proto}://{sub}"
-        res = requests.get(
+        res = _do_request(
             url=url,
-            timeout=timeout,
+            base_timeout=timeout,
             headers=stealth_header,
             impersonate=browser_engine,
             allow_redirects=allow_redirects,
-            verify=False,
+            retries=config.retry
         )
         return res, None
 
@@ -112,7 +122,7 @@ def resolve_ip(sub: str, custom_dns: str, record_type: str) -> str | None:
         return None
 
 def _do_request(
-url,
+    url,
     headers,
     impersonate,
     allow_redirects,
