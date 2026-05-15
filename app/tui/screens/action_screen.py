@@ -24,31 +24,9 @@ class ActionModal(ModalScreen):
         self.cmd_preview = ""
 
     def compose(self) -> ComposeResult:
-        layout = Table.grid(padding=(0, 3), expand=True)
-        layout.add_column(ratio=1)
-        layout.add_column(ratio=1)
-
-        mid = len(self.action) // 2
-        left_table = self._build_action_table(self.action[:mid])
-        right_table = self._build_action_table(self.action[mid:])
-        layout.add_row(left_table, right_table)
-
         with Container(id="action-modal-container"):
-            yield Static(
-                Panel(layout,
-                    title="[bold #FFD700]External Tools[/]",
-                    border_style="#00A3FF",
-                    padding=(1, 2)),
-                id="action-list"
-            )
-            yield Static(
-                Panel("Select action and press Enter",
-                    title="[bold #FFD700]Preview[/]",
-                    border_style="#565F89",
-                    padding=(1, 2)),
-                id="action-preview"
-            )
-
+            yield Static(id="action-list")
+            yield Static(id="action-preview")
     def on_mount(self):
         self._update_preview()
 
@@ -71,20 +49,47 @@ class ActionModal(ModalScreen):
                 self._execute_action()
                 event.stop()
 
-    def _build_action_table(self, action_subset) -> Table:
-        table = Table.grid(padding=(0, 1), expand=False)
-        table.add_column(style="#565F89", width=12)
-        table.add_column(style="#00E0FF", min_width=20)
+    def _render_list(self):
+        layout = Table.grid(padding=(0, 3), expand=True)
+        layout.add_column(ratio=1)
+        layout.add_column(ratio=1)
 
-        for idx, (key, template) in enumerate(action_subset):
+        mid = len(self.action) // 2
+        left_table = self._build_action_table(self.action[:mid])
+        right_table = self._build_action_table(self.action[mid:])
+        layout.add_row(left_table, right_table)
+
+        panel = Panel(
+            layout,
+            title="[bold #FFD700]External Tools[/]",
+            border_style="#00A3FF",
+            padding=(1, 2)
+        )
+        self.query_one("#action-list", Static).update(panel)
+
+    def _build_column(self, action_subset) -> Table:
+        table = Table.grid(padding=(0, 1), expand=False)
+        table.add_column(width=3)
+        table.add_column(width=18)
+        table.add_column(width=25)
+
+        for key, template in action_subset:
             actual_idx = self.action.index((key, template))
             is_selected = actual_idx == self.current_index
 
-            key_style = "#FFD700 bold" if is_selected else "#565F89"
-            key_text = f"[{actual_idx + 1}]"
+            indicator = "▶" if is_selected else " "
+            indicator_style = "#FFD700" if is_selected else "#565F89"
+
+            tool_style = "#FFD700 bold" if is_selected else "#00E0FF"
+            tool_name = key.split("_")[0].upper()
+
+            action_style = "#FFD700 bold" if is_selected else "#00A3FF"
+            action_name = " ".join(key.split("_")[1:]).title()
+
             table.add_row(
-                Text(f"{key_text}", style=key_style),
-                Text(key.upper().replace("_", " "), style="#00E0FF")
+                Text(indicator, style=indicator_style),
+                Text(tool_name, style=tool_style),
+                Text(action_name, style=action_style)
             )
         return table
 
