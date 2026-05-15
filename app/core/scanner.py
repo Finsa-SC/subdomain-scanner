@@ -11,6 +11,7 @@ from sources import get_subdomain
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
 from .validate import validate_subdomain
 from .request import send_request
+from .state import app_state
 
 def check_subdomain_tui(domain: str, callback):
     config = get_config()
@@ -43,17 +44,23 @@ def check_subdomain_tui(domain: str, callback):
     console.print()
 
     try:
-        with ThreadPoolExecutor(max_workers=config.thread) as executor:
+        with ThreadPoolExecutor(max_workers=config.thread) as ex:
+            app_state.executor = ex
             futures = {
-                executor.submit(validate_subdomain, sub, wildcard_baseline): sub
+                ex.submit(validate_subdomain, sub, wildcard_baseline): sub
                 for sub in itertools.islice(subdomain_iter, config.thread * 4)
             }
 
             while futures:
+                if not app_state.is_running:
+                    break
+
                 done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
                 from analysis import HoneypotAnalyzer
                 for future in done:
+                    if not app_state.is_running:
+                        break
                     try:
                         is_ok, ip, dict_sub = future.result()
 
@@ -81,8 +88,8 @@ def check_subdomain_tui(domain: str, callback):
                     del futures[future]
 
                     next_sub = next(subdomain_iter, None)
-                    if next_sub:
-                        new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                    if next_sub and app_state.is_running:
+                        new_f = ex.submit(validate_subdomain, next_sub, wildcard_baseline)
                         futures[new_f] = next_sub
 
                     if config.delay:

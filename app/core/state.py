@@ -5,6 +5,7 @@ class AppState:
         self.is_running = True
         self.data_store = {}
         self._lock = threading.Lock()
+        self.executor = None
 
     def stop(self):
         with self._lock:
