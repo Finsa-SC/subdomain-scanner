@@ -113,3 +113,36 @@ PortInputModal {
     content-align: center middle;
     margin-bottom: 1;
 }
+
+ActionModal {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.7); /* Nggelapin background biar fokus */
+}
+
+#action-modal-container {
+    width: 50;
+    height: auto;
+    max-height: 15;
+    border: double #FFD700; /* Warna emas biar senada sama aksen detail panel */
+    background: #1A1B26;
+    padding: 1;
+    elevation: 4;
+}
+
+/* Biar list pilihan di dalam popup kelihatan bersih */
+SelectionList {
+    background: transparent;
+    border: none;
+    height: auto;
+}
+
+/* Styling baris yang sedang dipilih di SelectionList */
+SelectionList > .selection-list--button {
+    color: #00E0FF;
+}
+
+SelectionList > .selection-list--button.-selected {
+    background: #00A3FF 30%;
+    color: #FFD700;
+    text-style: bold;
+}
