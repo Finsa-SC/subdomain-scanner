@@ -99,7 +99,7 @@ class ActionModal(ModalScreen):
 
         help_text = (
             "[#565F89]"
-            "↑↓←→ Navigate   •   "
+            "↑ ↓ ← → Navigate   •   "
             "TAB Toggle Edit Mode   •   "
             "ENTER Execute   •   "
             "ESC Close"
@@ -118,7 +118,7 @@ class ActionModal(ModalScreen):
     def _build_column(self, action_subset) -> Table:
         table = Table.grid(padding=(0, 1), expand=False)
         table.add_column(width=3)
-        table.add_column(width=18)
+        table.add_column(width=10)
         table.add_column(width=25)
 
         for key, template in action_subset:
