@@ -128,7 +128,7 @@ def _do_request(
     allow_redirects,
     base_timeout,
     retries,
-):
+) -> requests.Response:
     last_error = None
 
     for retry_count in range(retries + 1):

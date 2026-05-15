@@ -11,6 +11,7 @@ TIMEOUT = float(os.getenv("TIMEOUT", 3.0))
 THREAD = int(os.getenv("THREAD", 5))
 DEBUG = os.getenv("DEBUG", "false").lower().strip() == "true"
 DELAY = float(os.getenv("DELAY", 0.0))
+RETRIES = int(os.getenv("RETRIES", 0))
 
 VERSION = "1.0.0"
 
@@ -56,7 +57,7 @@ def main():
     config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
     config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 5)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
-    config_group.add_argument("--retry", type=int, help="Retry failed requests for transient/network errors (default: 0)")
+    config_group.add_argument("--retry", type=int, default=RETRIES, help="Retry failed requests for transient/network errors (default: 0)")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
     config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
