@@ -57,7 +57,7 @@ def launch_terminal(action_key: str, target: str, custom_cmd: str = None):
         full_cmd = custom_cmd
     else:
         template = COMMAND_TEMPLATES.get(action_key, "{target}")
-        full_cmd = template.format(target=target)
+        full_cmd = template['command'].format(target=target)
 
     if system == 'Windows':
         return _launch_windows(full_cmd)
