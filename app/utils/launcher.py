@@ -31,13 +31,19 @@ def launch_terminal(action_key: str, target: str):
         except Exception as e:
             log.error(f"Failed to launch command prompt: {e}")
     elif platform.system() == 'Darwin':
-        cmd_str = f"echo SUGGESTED COMMAND:; echo {full_cmd}"
-        script = f'tell application "Terminal" to do script "{cmd_str}"'
-        subprocess.Popen(["osascript", "-e", script])
-        return True
+        _launch_macos(full_cmd)
     elif platform.system() == 'Linux':
         _launch_linux(full_cmd)
     return False
+
+def _launch_macos(cmd: str) -> bool:
+    try:
+        script = f'tell application "Terminal" to do script "{cmd}"'
+        subprocess.Popen(["osascript", "-e", script])
+        return True
+    except Exception as e:
+        log.error(f"macOs launch failed: {e}")
+        return False
 
 def _launch_linux(cmd: str) -> bool:
     terminals = [
