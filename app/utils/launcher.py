@@ -1,12 +1,18 @@
-import subprocess, platform
+import subprocess, platform, os
+
+from dotenv import load_dotenv
+
 from .logger import get_logger
 
 log = get_logger("Launcher")
+load_dotenv()
+DEBUG = os.getenv("DEBUG", '').lower().strip() == 'true'
 
 COMMAND_TEMPLATES = {
     "nmap_quick": "nmap -T4 -F {target}",
     "nmap_full": "nmap -sV -sC -p- {target}",
-    "ffuf": "ffuf -u https://{target}/FUZZ -w /usr/share/wordlists/dirb/common.txt",
+    "ffuf_dir": "ffuf -u https://{target}/FUZZ -w /usr/share/wordlists/dirb/common.txt",
+    "ffuf_json": "ffuf -u https://{target} -X POST -H 'Content-Type: application/json' -d 'FUZZ'",
     "sqlmap": "sqlmap -u https://{target} --batch --banner",
     "whois": "whois {target}",
     "dig": "dig any {target} +short",
@@ -30,19 +36,31 @@ def launch_terminal(action_key: str, target: str):
         subprocess.Popen(["osascript", "-e", script])
         return True
     elif platform.system() == 'Linux':
-        cmd_str = f"echo 'SUGGESTED COMMAND:'; echo '{full_cmd}'; echo ''; exec bash"
-        terminals = [
-            ["konsole", "--noclose", "-e", "bash", "-c", cmd_str],
-            ["alacritty", "-e", "bash", "-c", cmd_str],
-            ["kitty", "bash", "-c", cmd_str],
-            ["xfce4-terminal", "--hold", "-e", f"bash -c '{cmd_str}'"],
-            ["xterm", "-hold", "-e", f"bash -c '{cmd_str}'"]
-        ]
+        _launch_linux(full_cmd)
+    return False
 
-        for term in terminals:
-            try:
-                subprocess.Popen(term, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                return True
-            except FileNotFoundError:
-                continue
+def _launch_linux(cmd: str) -> bool:
+    terminals = [
+        ["konsole", "--noclose", "-e", "bash", "-c", cmd],
+        ["alacritty", "-e", "bash", "-c", cmd],
+        ["kitty", "bash", "-c", cmd],
+        ["xfce4-terminal", "--hold", "-e", f"bash -c '{cmd}'"],
+        ["xterm", "-hold", "-e", f"bash -c '{cmd}'"]
+    ]
+
+    for term in terminals:
+        try:
+            subprocess.Popen(
+                term,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            if DEBUG:
+                log.debug(f"Launched with {term[0]}")
+            return True
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            log.error(f"Failed with {term[0]}: {e}")
+            continue
     return False
