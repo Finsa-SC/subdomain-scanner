@@ -1,4 +1,6 @@
-import time
+import time, os
+
+from dotenv import load_dotenv
 
 from .stealth import StealthMode
 from models import DNS_PROVIDERS, get_config
@@ -14,6 +16,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 stealth = StealthMode()
 log = get_logger("request")
+
+load_dotenv()
+debug_mode = os.getenv('DEBUG', '').lower().strip()
+DEBUG = debug_mode == 'true'
 
 def send_request(
         proto: str ,
@@ -146,8 +152,13 @@ def _do_request(
         except requests.errors.RequestsError as e:
             last_error = e
             err = str(e).upper()
+
+            if DEBUG:
+                log.debug(f"RAW ERROR => {err}")
+
             transient = [
-                "TIMEDOUT",
+                "TIMED OUT",
+                "TIMEOUT",
                 "CONNECTION RESET",
                 "FAILED TO CONNECT",
                 "EOF",
@@ -160,12 +171,19 @@ def _do_request(
                 raise e
             if any(x in err for x in transient):
                 if retry_count < retries:
-                    log.debug(
-                        f"Retry [{retry_count+1}/{retries}] "
-                        f"timeout={timeout}s -> {url}"
-                    )
+                    if DEBUG:
+                        log.debug(
+                            f"Retry [{retry_count+1}/{retries}] "
+                            f"timeout={timeout}s -> {url}"
+                        )
                     time.sleep(0.5 * (retry_count + 1))
                     continue
+            raise e
+        except Exception as e:
+            if DEBUG:
+                log.debug(
+                    f"UNKNOWN ERROR => {type(e).__name__}: {e}"
+                )
             raise e
     raise last_error
 
