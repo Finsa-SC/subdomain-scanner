@@ -104,8 +104,13 @@ class FullscreenDetail(Screen):
 
                     if status == "done" and info["data"]:
                         d = info["data"]
-                        if key == "favicon" and d.get("hash"):
-                            deep_table.add_row("", f"  [#00A3FF]Hash:[/] {d['hash']}")
+                        if key == "favicon":
+                            if d.get("hash_mmh3"):
+                                deep_table.add_row("", f"  [#00A3FF]MMH3:[/] {d['hash_mmh3']}")
+                            if d.get('matched'):
+                                deep_table.add_row("", f"  [#73DACA]Tech:[/] [bold]{d['matched']}[/]")
+                            if d.get("shodan_query"):
+                                deep_table.add_row("", f"  [#565F89]Scan:[/] {d['shodan_query']}")
                         elif key == "tech_version" and d.get("summary"):
                             for t, v in d["summary"].items():
                                 deep_table.add_row("", f"  [#00A3FF]{t}:[/] {v}")
