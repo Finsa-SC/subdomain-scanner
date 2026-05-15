@@ -1,16 +1,11 @@
-import time, os
-
+import time, os, re, urllib3, html
 from dotenv import load_dotenv
-
 from .stealth import StealthMode
 from models import DNS_PROVIDERS, get_config
 from utils import get_logger
-
 from curl_cffi import requests
-import html
-import urllib3
-import re
 import dns.resolver
+from .state import app_state
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -138,6 +133,8 @@ def _do_request(
     last_error = None
 
     for retry_count in range(retries + 1):
+        if not app_state.is_running:
+            return None
         try:
             timeout = base_timeout + retry_count
 
@@ -176,7 +173,13 @@ def _do_request(
                             f"Retry [{retry_count+1}/{retries}] "
                             f"timeout={timeout}s -> {url}"
                         )
-                    time.sleep(0.5 * (retry_count + 1))
+
+                    wait_time = 0.5 * (retry_count + 1)
+                    stop_at = time.time() + wait_time
+                    while time.time() < stop_at:
+                        if not app_state.is_running:
+                            return None
+                        time.sleep(0.1)
                     continue
             raise e
         except Exception as e:
