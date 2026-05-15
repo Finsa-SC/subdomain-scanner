@@ -5,7 +5,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import ModalScreen
-from textual.widgets import SelectionList, Input, Static
+from textual.widgets import Input, Static
 from utils import COMMAND_TEMPLATES, launch_terminal
 
 
@@ -27,9 +27,14 @@ class ActionModal(ModalScreen):
         with Container(id="action-modal-container"):
             yield Static(id="action-list")
             yield Static(id="action-preview")
+            yield Input(
+                placeholder="TAB to edit command, then ENTER to execute",
+                id="action-input"
+            )
     def on_mount(self):
         self._render_list()
         self._update_preview()
+        self.focus()
 
     def on_key(self, event):
         mid = (len(self.action) + 1) // 2
@@ -57,12 +62,6 @@ class ActionModal(ModalScreen):
                 self._render_list()
                 self._update_preview()
             event.stop()
-        elif event.character and event.character.isdigit():
-            idx = int(event.character) - 1
-            if 0 <= idx < len(self.actions):
-                self.current_index = idx
-                self._execute_action()
-                event.stop()
         elif event.key == "enter":
              self._execute_action()
              event.stop()
@@ -99,7 +98,7 @@ class ActionModal(ModalScreen):
             indicator_style = "#FFD700" if is_selected else "#565F89"
 
             tool_style = "#FFD700 bold" if is_selected else "#00E0FF"
-            tool_name = key.split("_")[0].upper()
+            tool_name = f"({key.split('_')[0].upper()})"
 
             action_style = "#FFD700 bold" if is_selected else "#00A3FF"
             action_name = " ".join(key.split("_")[1:]).title()
@@ -117,7 +116,12 @@ class ActionModal(ModalScreen):
             full_cmd = template.format(target=self.target)
             self.cmd_preview = full_cmd
 
-            preview_text = f"[#00A3FF]{full_cmd}[/]\n\n[#565F89]Press ENTER to execute or ESC to close[/]"
+            hint = self._get_hint(key)
+            preview_text = f"""[#00A3FF]{full_cmd}[/]
+
+            [#565F89]{hint}[/]
+
+            [#9ECE6A]Press TAB to edit • ENTER to execute • ESC to close[/]"""
 
             preview_panel = Panel(
                 Text.from_markup(preview_text),
@@ -126,6 +130,23 @@ class ActionModal(ModalScreen):
                 padding=(1, 2)
             )
             self.query_one("#action-preview", Static).update(preview_panel)
+
+            input_widget = self.query_one("#action-input", Input)
+            input_widget.value = full_cmd
+
+    def _get_hint(self, key: str) -> str:
+        """Return hint untuk configure command"""
+        hints = {
+            "nmap_quick": "Tip: Add '-O' for OS detection, '-sV' for version detection",
+            "nmap_full": "Tip: Change '-p-' to specific ports like '-p 80,443,8080'",
+            "ffuf_dir": "Tip: Change wordlist, add '-mc 200' for status codes, '-fs SIZE'",
+            "ffuf_json": "Tip: Customize JSON body payload, change wordlist path",
+            "sqlmap": "Tip: Add '--dbs' to enumerate databases, '--tables' for tables",
+            "whois": "Tip: Standard WHOIS lookup - no customization needed",
+            "dig": "Tip: Use 'dig @8.8.8.8' for specific DNS server, '+trace' for trace route",
+            "curl_head": "Tip: Remove '-I' to see body, add '-v' for verbose output",
+        }
+        return hints.get(key, "Customize flags and wordlists as needed for your assessment")
 
     def _execute_action(self):
         if self.current_index < len(self.action):
@@ -137,6 +158,19 @@ class ActionModal(ModalScreen):
                 self.app.pop_screen()
             else:
                 self.notify("Terminal emulator not found", severity='error')
+
+    def _execute_custom_cmd(self, custom_cmd: str):
+        if custom_cmd:
+            self.notify("Launch custom command", timeout=1)
+            success = self._launch_with_cmd(custom_cmd)
+            if success:
+                self.app.pop_screen()
+            else:
+                self.notify("Terminal emulatot not found", severity='error')
+
+    def _run_with_cmd(self, cmd: str) -> bool:
+        key = self.action[self.current_index][0] if self.current_index < len(self.action) else 'custom'
+        return launch_terminal(key, self.target, cmd)
 
     def action_dismiss(self):
         self.app.pop_screen()

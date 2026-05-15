@@ -138,3 +138,21 @@ ActionModal {
     height: 7;
     width: 1fr;
 }
+
+#action-input {
+    dock: bottom;
+    height: 3;
+    background: #1A1B26;
+    border: solid #00A3FF;
+    color: #00E0FF;
+    margin: 1 0 0 0;
+}
+
+#action-input:focus {
+    border: solid #FFD700;
+    color: #FFD700;
+}
+
+#action-input > Input {
+    background: #1A1B26;
+}

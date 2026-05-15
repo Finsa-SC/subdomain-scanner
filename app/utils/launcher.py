@@ -1,7 +1,5 @@
-import subprocess, platform, os
-
+import subprocess, platform, os, shutil
 from dotenv import load_dotenv
-
 from .logger import get_logger
 
 log = get_logger("Launcher")
@@ -19,10 +17,13 @@ COMMAND_TEMPLATES = {
     "curl_head": "curl -I https://{target}"
 }
 
-def launch_terminal(action_key: str, target: str):
-    template = COMMAND_TEMPLATES.get(action_key, "{target}")
-    full_cmd = template.format(target=target)
+def launch_terminal(action_key: str, target: str, custom_cmd: str = None):
     system = platform.system()
+    if custom_cmd:
+        full_cmd = custom_cmd
+    else:
+        template = COMMAND_TEMPLATES.get(action_key, "{target}")
+        full_cmd = template.format(target=target)
 
     if system == 'Windows':
         return _launch_windows(full_cmd)
@@ -54,12 +55,17 @@ def _launch_macos(cmd: str) -> bool:
         return False
 
 def _launch_linux(cmd: str) -> bool:
+    shell = "fish" if shutil.which("fish") else "bash"
     terminals = [
-        ["konsole", "--noclose", "-e", "bash", "-c", cmd],
-        ["alacritty", "-e", "bash", "-c", cmd],
-        ["kitty", "bash", "-c", cmd],
-        ["xfce4-terminal", "--hold", "-e", f"bash -c '{cmd}'"],
-        ["xterm", "-hold", "-e", f"bash -c '{cmd}'"]
+        ["alacritty", "-e", shell, "-c", f"{cmd}; read"],
+        ["konsole", "--noclose", "-e", shell, "-c", cmd],
+        ["kitty", shell, "-c", f"{cmd}; read"],
+        ["wezterm", "start", "--", shell, "-c", f"{cmd}; read"],
+        ["terminator", "-e", f"{shell} -c '{cmd}; read'"],
+        ["xfce4-terminal", "--hold", "-e", f"{shell} -c '{cmd}'"],
+        ["xterm", "-hold", "-e", f"{shell} -c '{cmd}'"],
+        ["st", "-e", shell, "-c", f"{cmd}; read"],
+        ["foot", shell, "-c", f"{cmd}; read"],
     ]
 
     for term in terminals:
