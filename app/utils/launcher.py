@@ -100,6 +100,8 @@ def _launch_linux(cmd: str) -> bool:
         ["xterm", "-hold", "-e", f"{shell} -c '{cmd}'"],
         ["st", "-e", shell, "-c", f"{cmd}; read"],
         ["foot", shell, "-c", f"{cmd}; read"],
+        ["gnome-terminal", "--", shell, "-c", f"{cmd}; read"],
+        ["qterminal", "-e", f"{shell} -c '{cmd}; read'"],
     ]
 
     for term in terminals:
