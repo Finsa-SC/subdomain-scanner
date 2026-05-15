@@ -68,7 +68,6 @@ class MainScreen(Screen):
     def on_subdomain_found(self, results):
         def update_ui():
             self.results.append(results)
-            log.info(f"[ui] update_ui called, subdomain={results.get('subdomain')}, total={len(self.results)}\n")
             self.apply_filter()
             self.update_stats()
         self.app.call_from_thread(update_ui)
@@ -165,6 +164,7 @@ class MainScreen(Screen):
                 pyperclip.copy(selected['subdomain'])
                 self.notify(f"Copied: {selected['subdomain']}")
             except:
+                log.error(f"Clipboard not available")
                 self.notify("Clipboard not available", severity="error")
 
     def action_open_browser(self):
