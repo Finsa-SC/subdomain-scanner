@@ -1,5 +1,3 @@
-from distutils.command.install import key
-
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import ModalScreen
@@ -10,6 +8,7 @@ from utils import COMMAND_TEMPLATES, launch_terminal
 
 class ActionModal(ModalScreen):
     def __init__(self, selected_result):
+        super().__init__()
         self.result = selected_result
         self.target = selected_result['subdomain']
 

@@ -192,3 +192,7 @@ class MainScreen(Screen):
             if filter_input.has_focus:
                 table.focus()
                 event.stop()
+
+    def get_selected_data(self):
+        table = self.query_one("#subdomain-table", SubdomainTable)
+        return table.get_selected_row()
