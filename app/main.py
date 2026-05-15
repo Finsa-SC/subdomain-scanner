@@ -3,7 +3,7 @@ from utils import parse_port
 from dotenv import load_dotenv
 from models.scan_config import ScanConfig
 from pathlib import Path
-import os, sys, argparse, tempfile, shutil
+import os, sys, argparse, tempfile, shutil, platform
 
 ### Init env
 load_dotenv()
@@ -101,7 +101,10 @@ def main():
             sys.exit(0)
         print("\t[C] Tailing on latest log...")
         try:
-            os.system('tail -f logs/latest.log')
+            if platform.system() == "Windows":
+                os.system(f"powershell Get-Content {target} -Wait")
+            else:
+                os.system('tail -f logs/latest.log')
         except KeyboardInterrupt:
             print('\t[C] Exit log viewer.')
         sys.exit(0)
