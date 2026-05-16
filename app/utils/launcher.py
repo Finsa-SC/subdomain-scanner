@@ -167,9 +167,10 @@ def launch_terminal_multi(action_key: str, targets: list[str], custom_cmd: str =
     return success, fail
 
 def _launch_windows(cmd: str) -> bool:
+    full_command = f'start "Subv Execution" cmd /k "{cmd}"'
     try:
         subprocess.Popen(
-            ["cmd", "/k", cmd],
+            full_command,
             shell=True)
         return True
     except Exception as e:
