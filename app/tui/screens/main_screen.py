@@ -196,3 +196,8 @@ class MainScreen(Screen):
     def get_selected_data(self):
         table = self.query_one("#subdomain-table", SubdomainTable)
         return table.get_selected_row()
+
+    def get_all_subdomain(self) -> list[str]:
+        if self.filtered_results:
+            return [str(item['subdomain']) for item in self.filtered_results if 'subdomain' in item]
+        return []
