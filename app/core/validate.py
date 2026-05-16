@@ -52,7 +52,8 @@ def _extract_title(res) -> str:
             title = html_module.unescape(match.group(1).strip())
             return title.replace("\n", " ").replace("\r", "")
         return "-"
-    except Exception:
+    except Exception as e:
+        log.error(f"Error while extract title: {e}")
         return "-"
 
 def parse_response(res, error: str | None) -> dict:
