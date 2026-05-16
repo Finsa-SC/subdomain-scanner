@@ -1,7 +1,5 @@
 import time, os, re, urllib3, html
 from dotenv import load_dotenv
-from platformdirs import user_config_dir
-
 from .stealth import StealthMode
 from models import DNS_PROVIDERS, get_config
 from utils import get_logger
@@ -130,7 +128,10 @@ def send_request(
         return res
 
     except Exception as e:
-        log.debug(f"Send request failed for {url}: {type(e).__name__} - {e}")
+        str_err = str(e).upper()
+        if "DNSERROR" in str_err or "Could not resolve host":
+            log.debug(f"Send request failed (DNS) for {url}: {type(e).__name__} - {e}")
+        log.error(f"Send request failed for {url}: {type(e).__name__} - {e}")
         return None
 
 def send_subdomain_request(
