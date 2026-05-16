@@ -6,7 +6,7 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Input, Static
-from utils import COMMAND_TEMPLATES, launch_terminal
+from utils import COMMAND_TEMPLATES, launch_terminal, launch_terminal_multi
 
 class ActionModal(ModalScreen):
     BINDINGS = [
@@ -119,7 +119,7 @@ class ActionModal(ModalScreen):
         table = Table.grid(padding=(0, 1), expand=False)
         table.add_column(width=3)
         table.add_column(width=10)
-        table.add_column(width=25)
+        table.add_column(width=40)
 
         for key, template in action_subset:
             actual_idx = self.action.index((key, template))
@@ -175,7 +175,7 @@ class ActionModal(ModalScreen):
     def _execute_custom_cmd(self, custom_cmd: str):
         if custom_cmd:
             self.notify("Launch custom command", timeout=1)
-            success = self._execute_custom_cmd(custom_cmd)
+            success = self._run_with_cmd(custom_cmd)
             if success:
                 self.app.pop_screen()
             else:

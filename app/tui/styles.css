@@ -120,7 +120,7 @@ ActionModal {
 }
 
 #action-modal-container {
-    width: 100;
+    width: 120;
     height: 24;
     border: double #FFD700;
     background: #0B0E14;
