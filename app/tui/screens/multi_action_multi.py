@@ -18,7 +18,7 @@ class MultiActionModal(ModalScreen):
         super().__init__()
         self.target = target_list
         self.action = [
-            (k, v) for k, v in COMMAND_TEMPLATES
+            (k, v) for k, v in COMMAND_TEMPLATES.items()
             if v.get('command_multi') is not None
         ]
         self.current_index = 0
