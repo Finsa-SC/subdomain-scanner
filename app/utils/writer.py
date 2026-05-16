@@ -1,9 +1,13 @@
+import platform
+import subprocess
+
 from models import PROXY_IPS
 from .logger import get_logger
 import hashlib
 import ipaddress
 import json
 from pathlib import Path
+import shutil
 
 log = get_logger("writer")
 def check_results_dir():
@@ -130,3 +134,18 @@ def clean_item(item):
     item.pop("timestamp", None)
     item.pop("honeypot_findings", None)
     return item
+
+def copy_to_clipboard(text: str):
+    system = platform.system()
+    try:
+        if system == 'Windows':
+            subprocess.run(["clip"], input=text.encode(), check=True)
+        elif system == 'Darwin':
+            subprocess.run(["pbcopy"], input=text.encode(), check=True)
+        elif system == 'Linux':
+            if shutil.which("xclip"):
+                subprocess.run(['xclip', '-selection', 'clipboard'], input=text.encode(), check=True)
+            elif shutil.which("xsel"):
+                subprocess.run(['xsel', "--clipboard", "--input"], input=text.encode(), check=True)
+    except Exception as e:
+        log.error(f"Clipboard copy failed: {e}")
