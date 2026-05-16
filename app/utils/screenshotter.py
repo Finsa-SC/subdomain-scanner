@@ -77,6 +77,15 @@ def take_screenshot(result: dict, open_image: bool = False):
         return True, str(out_path)
 
     except Exception as e:
+        str_err = str(e)
+        if "DLL load failed" in str_err or "_greenlet" in str_err:
+            msg = (
+                "Screenshot failed: DLL not found. "
+                "Install Visual C++ Redistributable from: "
+                "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            )
+            log.error(msg)
+            return False, msg
         log.error(f"Screenshot failed: {e}")
         return False, str(e)
 

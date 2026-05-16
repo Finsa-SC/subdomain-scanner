@@ -34,7 +34,7 @@ COMMAND_TEMPLATES = {
     "ffuf_json": {
         "tool": ffuf,
         "description": "Json payload fuzzing",
-        "command": "ffuf -u https://{target} -X POST -H 'Content-Type: application/json' -d 'FUZZ'",
+        "command": 'ffuf -u https://{target} -X POST -H "Content-Type: application/json" -d "FUZZ"',
         "command_multi": None
     },
     "sqlmap": {
