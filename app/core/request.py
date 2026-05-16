@@ -146,24 +146,39 @@ def send_subdomain_request(
     try:
         stealth_header, browser_engine = stealth.get_payload()
 
+        if custom_dns:
+            dns_ip = DNS_PROVIDERS.get(custom_dns.lower(), custom_dns)
+            ip = resolve_ip(sub, dns_ip, 'A') or resolve_ip(sub, dns_ip, 'AAAA')
+            if ip:
+                formatted_ip = f"[{ip}]" if ":" in ip else ip
+                url = f"{proto}://{formatted_ip}"
+                stealth_header["Host"] = sub
+            else:
+                return (None, "DNS_ERR") if return_error_token else None
+        else:
+            url = f"{proto}://{sub}"
+
         res = _do_request(
             url=url,
+            method="GET",
             base_timeout=timeout,
             headers=stealth_header,
             impersonate=browser_engine,
             allow_redirects=allow_redirects,
             retries=config.retry
         )
-        return res, None
+        return (res, None) if return_error_token else res
 
     except requests.errors.RequestsError as e:
-        err = str(e).upper()
-        if "SSL" in err or "CERTIFICATE" in err:
-            return None, "SSL_ERR"
-        return None, "CONN_ERR"
+        if return_error_token:
+            err = str(e).upper()
+            if "SSL" in err or "CERTIFICATE" in err:
+                return None, "SSL_ERR"
+            return None, "CONN_ERR"
+        return None
     except Exception as e:
         log.error(f"send_request_with_error [{proto}] {sub}: {type(e).__name__} - {e}")
-        return None, "CONN_ERR"
+        return (None, "CONN_ERR") if return_error_token else None
 
 
 def get_html_title(res):
