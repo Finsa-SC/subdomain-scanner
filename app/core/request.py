@@ -11,8 +11,13 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 stealth = StealthMode()
 log = get_logger("request")
-
 load_dotenv()
+
+PROXY_URL = os.getenv("PROXY_URL", "").strip().lower()
+
+if not PROXY_URL or PROXY_URL == 'none':
+    PROXY_URL = None
+
 debug_mode = os.getenv('DEBUG', '').lower().strip()
 DEBUG = debug_mode == 'true'
 
@@ -137,6 +142,12 @@ def _do_request(
             return None
         try:
             timeout = base_timeout + retry_count
+            proxies = None
+            if PROXY_URL:
+                proxies = {
+                    "http": PROXY_URL,
+                    "https": PROXY_URL
+                }
 
             return requests.get(
                 url=url,
@@ -145,6 +156,7 @@ def _do_request(
                 impersonate=impersonate,
                 allow_redirects=allow_redirects,
                 verify=False,
+                proxies=proxies
             )
         except requests.errors.RequestsError as e:
             last_error = e
