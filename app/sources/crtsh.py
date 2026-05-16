@@ -19,4 +19,4 @@ def fetch_crtsh(domain: str):
                     if clean:
                         yield clean
     except Exception as e:
-        log.error(f"Unexpected error in hackertarget module: {e}")
+        log.error(f"Unexpected error in Crt sh module: {e}")
