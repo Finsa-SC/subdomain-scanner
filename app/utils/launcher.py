@@ -122,12 +122,14 @@ def launch_terminal_multi(action_key: str, targets: list[str], custom_cmd: str =
     system = platform.system()
     success, fail = 0, 0
 
-    if not custom_cmd:
+    has_bulk_cmd = template and template.get('command_multi')
+
+    if not custom_cmd and has_bulk_cmd:
         fd, tmp_file = tempfile.mkstemp(suffix='.txt', prefix='subv_targets_')
         try:
             with os.fdopen(fd, 'w') as file:
                 file.write("\n".join(targets))
-            bulk_cmd = COMMAND_TEMPLATES[action_key].format(file=tmp_file)
+            bulk_cmd = template['command_multi'].format(file_path=tmp_file)
 
             if system == 'Windows':
                 ok = _launch_windows(bulk_cmd)
@@ -146,14 +148,16 @@ def launch_terminal_multi(action_key: str, targets: list[str], custom_cmd: str =
         if custom_cmd:
             full_cmd = custom_cmd.replace("{target}", target)
         else:
-            full_cmd = template['comman_multi'].format(target=target)
+            full_cmd = template["command"].format(target=target)
 
         if system == "Windows":
             ok = _launch_windows(full_cmd)
         elif system == "Darwin":
             ok = _launch_macos(full_cmd)
-        else:
+        elif system == 'Linux':
             ok = _launch_linux(full_cmd)
+        else:
+            ok = False
 
         if ok:
             success += 1
