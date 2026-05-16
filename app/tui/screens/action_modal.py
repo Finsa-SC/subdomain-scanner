@@ -6,7 +6,7 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Input, Static
-from utils import COMMAND_TEMPLATES, launch_terminal, launch_terminal_multi
+from utils import COMMAND_TEMPLATES, launch_terminal
 
 class ActionModal(ModalScreen):
     BINDINGS = [

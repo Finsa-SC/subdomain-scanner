@@ -2,7 +2,8 @@ import sys
 from textual.app import App
 from textual.binding import Binding
 
-from .screens.action_screen import ActionModal
+from .screens.action_modal import ActionModal
+from .screens.multi_action_multi import MultiActionModal
 from .screens.main_screen import MainScreen
 from core import app_state
 
@@ -12,7 +13,8 @@ class SubdomainScannerTUI(App):
     BINDINGS = [
         Binding("q", "force_quit", "Quit", priority=True),
         Binding("a", "open_action_menu", priority=True),
-        Binding("ctrl+c", "force_quit", "Quit", show=False)
+        Binding("A", "open_multi_action", "Multi Action"),
+        Binding("ctrl+c", "force_quit", "Quit", show=False),
     ]
 
     def __init__(self, config, domain_or_file):
@@ -41,6 +43,17 @@ class SubdomainScannerTUI(App):
                 self.notify("Please select a subdomain first", severity='warning')
         else:
             self.notify("Action not available on this screen", severity='error')
+
+    def action_open_multi_action(self):
+        active_screen = self.screen
+        if hasattr(active_screen, "get_all_subdomain")
+            all_targets = self.get_all_subdomain()
+            if all_targets:
+                self.app.push_screen(MultiActionModal(all_targets))
+            else:
+                self.notify("No subdomain available for mass action", severity='warning')
+        else:
+            self.notify("Multi-action not available on this screen", severity='error')
 
 def run_tui(config, domain_or_file):
     app = SubdomainScannerTUI(config, domain_or_file)
