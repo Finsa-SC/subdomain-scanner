@@ -65,6 +65,8 @@ def scan_port(host: str, ports: set[int], timeout: float = 1.0) -> dict[int, str
                     result[port] = 'filtered'
         except socket.timeout:
             result[port] = 'filtered'
-        except Exception:
+        except Exception as ex:
+            if DEBUG:
+                log.debug(f"Can't scan port: {ex}")
             continue
     return result
