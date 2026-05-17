@@ -121,6 +121,9 @@ def main():
     if args.ip:
         filter_query += f" ip:{args.ip}"
 
+    if args.delay < 0.0:
+        args.delay = 0.0
+
     config = ScanConfig(
         timeout=args.timeout,
         thread=args.thread,
