@@ -38,7 +38,7 @@ def _detech_tech(header: dict) -> list[str]:
         if match:
             if match.lastindex:
                 version = match.group(1)
-                detected.append(f"{name}/{version}")
+                detected.append(f"{name}: {version}")
             else:
                 detected.append(name)
 
@@ -182,6 +182,18 @@ def validate_subdomain(sub, wildcard_baseline):
                 if success:
                     data["screenshot"] = path_or_err
 
+        if config.deep_scan:
+            from analysis import run_deep_scan
+
+            try:
+                run_deep_scan(
+                    result=data,
+                    on_module_done=_dummy_callback,
+                    timeout=3.0
+                )
+            except Exception as e:
+                log.error(f"Failed to auto deep scan for {sub}: {e}")
+
         status_ok = 200 in [http_status, https_status]
 
         return status_ok, ip_address, data
@@ -196,7 +208,7 @@ def humane_sleep(min_delay: float):
         jitter = min_delay + random.uniform(0.0, 1.0)
         time.sleep(jitter)
 
-def sign(http_status, https_status, is_wildcard) -> str:
+def sign(http_status: int, https_status: int, is_wildcard: bool) -> str:
     if is_wildcard:
         return "[?]"
     elif http_status == 200 or https_status == 200:
@@ -205,3 +217,6 @@ def sign(http_status, https_status, is_wildcard) -> str:
         return "[!]"
     else:
         return "[-]"
+
+def _dummy_callback(key, deep_scan_state):
+    pass
