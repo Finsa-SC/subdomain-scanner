@@ -35,10 +35,15 @@ def _detech_tech(header: dict) -> list[str]:
 
     for name, pattern in patterns.items():
         match = re.search(pattern, header_str, re.IGNORECASE)
-        if match:
-            if match.group() and match.group(1) is not None:
-                detected.append(f"{name}: {match.group(1)}")
-            else:
+        try:
+            if match:
+                if match.group():
+                    version = match.group(1)
+                    detected.append(f"{name}: {version}")
+                else:
+                    detected.append(name)
+        except (IndexError, AttributeError):
+            if re.search(pattern, header_str, re.IGNORECASE):
                 detected.append(name)
 
     return sorted(list(set(detected)))
