@@ -46,8 +46,6 @@ class FullscreenDetail(Screen):
         r = self.result
         http = r.get("http", {})
         https = r.get("https", {})
-        subdomain = r.get("subdomain", "")
-        ip = r.get("ip_address", "No IP")
 
         sections = []
 
@@ -301,9 +299,11 @@ class FullscreenDetail(Screen):
     def action_deep_scan(self):
         from analysis import run_deep_scan
         def on_module_done(key, states):
+            self.app.call_from_thread(self._refresh_detail)
+
             if key == 'tech_version':
                 self._merge_deep_tech_to_protocols()
-            self.app.call_from_thread(self._refresh_detail)
+                self.app.call_from_thread(self._refresh_detail)
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
         run_deep_scan(self.result, on_module_done)
@@ -326,6 +326,7 @@ class FullscreenDetail(Screen):
                 for proto in ('http', 'https'):
                     if proto not in self.result:
                         continue
+
                     current_tech = self.result[proto].get('tech') or []
                     combined = list(set(current_tech + new_tech_list))
                     final_list = []

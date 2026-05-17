@@ -43,7 +43,7 @@ class DetailPanel(Static):
             redir = proto.get("redir")
             status = proto.get("status")
             size = proto.get("size")
-            tech = proto.get("tech")
+            tech = proto.get("tech", [])
             server = proto.get("server", "Unknown")
             title = proto.get("title", '-')
 
@@ -58,9 +58,13 @@ class DetailPanel(Static):
             detail_table.add_row("  Size:", f"{size}B" if size is not None else "0")
             detail_table.add_row("  Redirect to:", f"{redir}")
             detail_table.add_row("  Title:", title)
-            detail_table.add_row(
-                "  Tech:", ","
-                           " ".join(t.split(':')[0].split(' ')[0] for t in tech[:5]))
+
+            if tech:
+                tech_display = ", ".join(str(t) for t in tech[:5])
+                detail_table.add_row("  Tech:", tech_display)
+            else:
+                detail_table.add_row("  Tech:", "-")
+
 
         protocol_detail('http')
         protocol_detail('https')
