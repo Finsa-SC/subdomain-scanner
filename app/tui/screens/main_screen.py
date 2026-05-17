@@ -7,7 +7,7 @@ from ..widgets.detail_panel import DetailPanel
 from ..widgets.stats_bar import StatsBar
 from ..filter_parser import FilterParser
 import threading
-from utils import can_screenshot, take_screenshot, do_screenshot, get_logger
+from utils import do_screenshot, get_logger
 
 log = get_logger('main_screen')
 
