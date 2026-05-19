@@ -1,5 +1,9 @@
+import os
 import platform
 import subprocess
+
+import time
+from unittest.util import three_way_cmp
 
 from models import PROXY_IPS
 from .logger import get_logger
@@ -149,3 +153,23 @@ def copy_to_clipboard(text: str):
                 subprocess.run(['xsel', "--clipboard", "--input"], input=text.encode(), check=True)
     except Exception as e:
         log.error(f"Clipboard copy failed: {e}")
+
+def schedule_cleanup(file_path: str, delay: float = 300.0):
+    import threading
+
+    def cleanup():
+        time.sleep(delay)
+        _cleanup_temp(file_path)
+
+    thread = threading.Thread(target=cleanup, daemon=True)
+    thread.start()
+
+
+def _cleanup_temp(file_path: str):
+    path_obj = Path(file_path)
+    if Path.exists(path_obj):
+        try:
+            path_obj.unlink()
+            log.debug(f"Cleaned up temp file: {file_path}")
+        except Exception as e:
+            log.error(f"Failed to clean up temp file {file_path}: {e}")
