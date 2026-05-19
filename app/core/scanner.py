@@ -106,7 +106,7 @@ def check_subdomain_tui(domain: str, callback):
     except KeyboardInterrupt:
         pass
     finally:
-        log.info(f"Scanning started at: {datetime.now()}")
+        log.info(f"Scanning ended at: {datetime.now()}")
 
 def check_wildcard(domain: str):
     config = get_config()
