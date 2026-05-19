@@ -25,10 +25,6 @@ def can_screenshot(result: dict) -> tuple[bool, str]:
     if h_status not in live_host and s_status not in live_host:
         return False, f"Not a live host (HTTP: {h_status}, HTTPS: {s_status})"
 
-    title = h_title if h_status == 200 else s_title
-    for junk in TITLE_IGNORE:
-        if junk in title:
-            return False, f"Title generic: '{title}'"
     return True, ""
 
 def _pick_url(result: dict) -> str:
@@ -117,8 +113,8 @@ def ensure_chromium():
             proxy={'server': proxy_url} if proxy_url else None
         )
         return play, browser
-    except Exception as e:
-        str_err = str(e)
+    except Exception as ex:
+        str_err = str(ex)
 
         if 'Browser closed' in str_err or "Executable doesn't exist" in str_err:
             log.info("Chromium not found! Installing...")
@@ -138,7 +134,7 @@ def ensure_chromium():
                 proxy={'server': proxy_url} if proxy_url else None
             )
             return play, browser
-        log.error(f"Failed to open chromium: {e}")
+        log.error(f"Failed to open chromium: {ex}")
         return None, None
 
 def do_screenshot(app, result: dict, notify=None, callback=None):
