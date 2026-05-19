@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -148,9 +150,24 @@ class MultiActionModal(ModalScreen):
         return table
 
     def _update_preview(self):
+        import tempfile
+
         if self.current_index < len(self.action):
             key, template = self.action[self.current_index]
-            full_cmd = template['command_multi']
+            fd, tmp_file = tempfile.mkstemp(
+                prefix='subv_targets_preview_', suffix='.txt'
+            )
+
+            path_file = Path(tmp_file)
+            try:
+                path_file.write_text("\n".join(self.target))
+                full_cmd = template['command_multi'].format(
+                    file_path=tmp_file
+                )
+
+            except:
+                full_cmd = template['command_multi']
+
             self.cmd_preview = full_cmd
 
             preview_panel = Panel(
@@ -162,7 +179,9 @@ class MultiActionModal(ModalScreen):
                 border_style="#565F89",
                 padding=(1, 2)
             )
-            self.query_one("#action-preview", Static).update(preview_panel)
+            self.query_one(
+                "#action-preview", Static
+            ).update(preview_panel)
 
             input_widget = self.query_one("#action-input", Input)
             input_widget.value = full_cmd
