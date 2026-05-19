@@ -155,7 +155,8 @@ class MultiActionModal(ModalScreen):
         if self.current_index < len(self.action):
             key, template = self.action[self.current_index]
             fd, tmp_file = tempfile.mkstemp(
-                prefix='subv_targets_preview_', suffix='.txt'
+                prefix='subv_targets_preview_',
+                suffix='.txt'
             )
 
             path_file = Path(tmp_file)
@@ -195,7 +196,11 @@ class MultiActionModal(ModalScreen):
             if success:
                 self.app.pop_screen()
             else:
-                self.notify("Terminal emulator not found", severity='error')
+                self.notify(
+                    "Failed to open terminal emulator",
+                    severity='error',
+                    timeout=5
+                )
 
     def _execute_custom_cmd(self, custom_cmd: str):
         if custom_cmd:
@@ -204,15 +209,16 @@ class MultiActionModal(ModalScreen):
             if success:
                 self.app.pop_screen()
             else:
-                self.notify("Terminal emulatot not found", severity='error')
+                self.notify(
+                    "Terminal emulatot not found",
+                    severity='error',
+                    timeout=5
+                )
 
     def _run_with_cmd(self, cmd: str) -> bool:
         key = self.action[self.current_index][0] if self.current_index < len(self.action) else 'custom'
         success, fail = launch_terminal_multi(key, self.target, cmd)
-        if success > 0:
-            self.app.pop_screen()
-        else:
-            self.notify("Failed to launch emulator", severity='error')
+        return success > 0
 
     def action_dismiss(self):
         self.app.pop_screen()
