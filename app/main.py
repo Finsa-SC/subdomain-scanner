@@ -3,7 +3,7 @@ from utils import parse_port
 from dotenv import load_dotenv
 from models.scan_config import ScanConfig
 from pathlib import Path
-import os, sys, argparse, tempfile, shutil
+import os, sys, argparse, tempfile, shutil, platform
 
 ### Init env
 load_dotenv()
@@ -11,6 +11,7 @@ TIMEOUT = float(os.getenv("TIMEOUT", 3.0))
 THREAD = int(os.getenv("THREAD", 5))
 DEBUG = os.getenv("DEBUG", "false").lower().strip() == "true"
 DELAY = float(os.getenv("DELAY", 0.0))
+RETRIES = int(os.getenv("RETRIES", 0))
 
 VERSION = "1.0.0"
 
@@ -56,6 +57,7 @@ def main():
     config_group.add_argument("--timeout", type=float, default=TIMEOUT, help="Request timeout (default: 3s)")
     config_group.add_argument("--thread", type=int, default=THREAD, help="Number of threads (default: 5)")
     config_group.add_argument("--delay", type=float, default=DELAY, help="Delay of request")
+    config_group.add_argument("--retry", type=int, default=RETRIES, help="Retry failed requests for transient/network errors (default: 0)")
     config_group.add_argument("--dns", type=str, help="Custom DNS provider (cloudflare, google, quad9, opendns) or IP")
     config_group.add_argument("--all", action="store_true", help="Use all available subdomain source enumeration")
 
@@ -76,6 +78,7 @@ def main():
     profile_group = parser.add_argument_group('PROFILING & ANALYSIS')
     profile_group.add_argument("--honeypot", action="store_true", help="Enable smart fingerprinting")
     profile_group.add_argument("--screenshot", action="store_true", help="Take screenshot to each subdomain with 200 status code")
+    profile_group.add_argument("-X", "--deep-scan", action="store_true", help="Automaticaly run deep scan for each subdomain")
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -99,7 +102,10 @@ def main():
             sys.exit(0)
         print("\t[C] Tailing on latest log...")
         try:
-            os.system('tail -f logs/latest.log')
+            if platform.system() == "Windows":
+                os.system(f"powershell Get-Content {target} -Wait")
+            else:
+                os.system('tail -f logs/latest.log')
         except KeyboardInterrupt:
             print('\t[C] Exit log viewer.')
         sys.exit(0)
@@ -116,6 +122,9 @@ def main():
     if args.ip:
         filter_query += f" ip:{args.ip}"
 
+    if args.delay < 0.0:
+        args.delay = 0.0
+
     config = ScanConfig(
         timeout=args.timeout,
         thread=args.thread,
@@ -128,8 +137,10 @@ def main():
         honeypot=args.honeypot,
         screenshot=args.screenshot,
         dns=args.dns,
+        retry=args.retry,
         port=parse_port(args.port),
-        query=filter_query
+        query=filter_query,
+        deep_scan=args.deep_scan
     )
 
     set_config(config)

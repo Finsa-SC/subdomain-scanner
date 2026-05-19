@@ -1,11 +1,6 @@
 from urllib.parse import urlparse, urljoin
-
-from curl_cffi import requests
 import mmh3, hashlib, base64, re
-import urllib3
-
 from .logger import get_logger
-from core import StealthMode
 
 log = get_logger("favicon")
 KNOWN_FAVICON_HASHES: dict[int, str] = {
@@ -61,30 +56,21 @@ def _pick_base_url(result) -> str:
     return f"http://{subdomain}"
 
 def _fetch_content(url: str, timeout: float = 5.0):
+    from core import send_request
     parsed = urlparse(url)
-    proto = parsed.scheme
-    host = parsed.netloc
-    path = parsed.path
 
-    urllib3.disable_warnings()
-    stealth = StealthMode()
-    headers, engine = stealth.get_payload()
-    try:
-        res = requests.get(
-            url=url,
-            timeout=timeout,
-            headers=headers,
-            impersonate=engine,
-            allow_redirects=True,
-            verify=False
-        )
+    res = send_request(
+        method="GET",
+        url=url,
+        timeout=timeout,
+        allow_redirects=True
+    )
+    if res:
         ctype = res.headers.get("Content-Type", "")
         if res.status_code == 200 and res.content:
             return res.content, ctype
         return None, ctype
-    except Exception as e:
-        log.debug(f"_fetch_content failed {url}: {e}")
-        return None, ""
+    return None, ""
 
 def _find_favicon_in_html(html: str, base_url: str) -> str | None:
     p1 = r'<link[^>]+rel=["\'](?:shortcut\s+)?icon["\'][^>]*href=["\']([^"\']+)["\']'

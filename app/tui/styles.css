@@ -39,6 +39,7 @@ Screen {
     display: block;
 }
 
+/* ============================ Stats =============================*/
 StatsBar {
     dock: bottom;
     height: 3;
@@ -95,6 +96,7 @@ DataTable > .datatable--stripe {
     padding: 1 2;
 }
 
+/* ============================ Port =============================*/
 PortInputModal {
     align: center middle;
     background: rgba(0, 0, 0, 0.5);
@@ -112,4 +114,88 @@ PortInputModal {
     text-style: bold;
     content-align: center middle;
     margin-bottom: 1;
+}
+
+/* ============================ Action =============================*/
+ActionModal {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+#action-modal-container {
+    width: 120;
+    height: 24;
+    border: double #FFD700;
+    background: #0B0E14;
+    padding: 1;
+    layout: vertical;
+}
+
+#action-list {
+    height: 1fr;
+    width: 1fr;
+    margin-bottom: 1;
+}
+
+#action-preview {
+    height: 7;
+    width: 1fr;
+}
+
+#action-input {
+    dock: bottom;
+    height: 3;
+    background: #1A1B26;
+    border: solid #00A3FF;
+    color: #00E0FF;
+    margin: 1 0 0 0;
+}
+
+#action-input:focus {
+    border: solid #FFD700;
+    color: #FFD700;
+}
+
+#action-input > Input {
+    background: #1A1B26;
+}
+
+/* ============================ Multi Action =============================*/
+MultiActionModal {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+#multi-modal-container {
+    width: 120;
+    height: 26;
+    border: double #FFD700;
+    background: #0B0E14;
+    padding: 1;
+    layout: vertical;
+}
+
+#multi-target-info {
+    height: 3;
+    content-align: center middle;
+    background: #1A1B26;
+    color: #FFD700;
+    text-style: bold;
+    margin-bottom: 1;
+    border: solid #00A3FF;
+}
+
+#multi-action-list {
+    height: 1fr;
+    width: 1fr;
+    margin-bottom: 1;
+}
+
+#multi-action-preview {
+    height: 7;
+    width: 1fr;
+    background: #1A1B26;
+    border: solid #565F89;
+    color: #00E0FF;
+    padding: 0 1;
 }

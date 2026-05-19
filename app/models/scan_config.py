@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class ScanConfig:
-    # --- Required --- #
+    # --- Rule --- #
     timeout: float = 3.0
     thread: int = 5
     delay: float = 0.0
+    retry: int = 0
 
     # --- Discovery --- #
     source: str | None = None
@@ -21,6 +22,7 @@ class ScanConfig:
     # --- Profiling --- #
     honeypot: bool = False
     screenshot: bool = False
+    deep_scan: bool = False
 
     # --- Dns --- #
     dns: str | None = None

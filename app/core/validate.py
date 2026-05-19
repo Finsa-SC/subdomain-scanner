@@ -1,5 +1,5 @@
 ##Module Function
-from .request import send_request, send_request_with_error
+from .request import send_subdomain_request
 from models import get_config
 from utils import get_logger, scan_port
 
@@ -35,11 +35,15 @@ def _detech_tech(header: dict) -> list[str]:
 
     for name, pattern in patterns.items():
         match = re.search(pattern, header_str, re.IGNORECASE)
-        if match:
-            if match.lastindex:
-                version = match.group(1)
-                detected.append(f"{name}/{version}")
-            else:
+        try:
+            if match:
+                if match.group():
+                    version = match.group(1)
+                    detected.append(f"{name}: {version}")
+                else:
+                    detected.append(name)
+        except (IndexError, AttributeError):
+            if re.search(pattern, header_str, re.IGNORECASE):
                 detected.append(name)
 
     return sorted(list(set(detected)))
@@ -52,7 +56,8 @@ def _extract_title(res) -> str:
             title = html_module.unescape(match.group(1).strip())
             return title.replace("\n", " ").replace("\r", "")
         return "-"
-    except Exception:
+    except Exception as e:
+        log.error(f"Error while extract title: {e}")
         return "-"
 
 def parse_response(res, error: str | None) -> dict:
@@ -98,8 +103,8 @@ def validate_subdomain(sub, wildcard_baseline):
 
         custom_dns = config.dns
 
-        http_res, http_err = send_request_with_error("http", sub, config.timeout, custom_dns)
-        https_res, https_err = send_request_with_error("https", sub, config.timeout, custom_dns)
+        http_res, http_err = send_subdomain_request("http", sub, config.timeout, custom_dns, return_error_token=True)
+        https_res, https_err = send_subdomain_request("https", sub, config.timeout, custom_dns, return_error_token=True)
 
         h = parse_response(http_res, http_err)
         s = parse_response(https_res, https_err)
@@ -173,13 +178,25 @@ def validate_subdomain(sub, wildcard_baseline):
             if ports:
                 data["ports"] = ports
 
-        if config.screenshot:
+        if config.screenshot and (isinstance(http_status, int) or isinstance(https_status, int)):
             from utils import take_screenshot, can_screenshot
             ok, reason = can_screenshot(data)
             if ok:
                 success, path_or_err = take_screenshot(data)
                 if success:
                     data["screenshot"] = path_or_err
+
+        if config.deep_scan and (isinstance(http_status, int) or isinstance(https_status, int)):
+            from analysis import run_deep_scan
+
+            try:
+                run_deep_scan(
+                    result=data,
+                    on_module_done=_dummy_callback,
+                    timeout=3.0
+                )
+            except Exception as e:
+                log.error(f"Failed to auto deep scan for {sub}: {e}")
 
         status_ok = 200 in [http_status, https_status]
 
@@ -188,17 +205,14 @@ def validate_subdomain(sub, wildcard_baseline):
         log.error(f"Error: {sub} -> {e}")
         return False, "No IP", None
 
-def humane_sleep(base_delay: float):
+def humane_sleep(min_delay: float):
     config = get_config()
 
-    if config.delay > 0:
-        jitter = base_delay * 0.25
-        actual_delay = random.uniform(base_delay - jitter, base_delay + jitter)
-        time.sleep(actual_delay)
-    else:
-        time.sleep(random.uniform(0.1, 0.5))
+    if config.delay > 0.0:
+        jitter = min_delay + random.uniform(0.0, 1.0)
+        time.sleep(jitter)
 
-def sign(http_status, https_status, is_wildcard) -> str:
+def sign(http_status: int, https_status: int, is_wildcard: bool) -> str:
     if is_wildcard:
         return "[?]"
     elif http_status == 200 or https_status == 200:
@@ -207,3 +221,6 @@ def sign(http_status, https_status, is_wildcard) -> str:
         return "[!]"
     else:
         return "[-]"
+
+def _dummy_callback(key, deep_scan_state):
+    pass

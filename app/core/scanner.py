@@ -10,10 +10,16 @@ from models import get_config
 from sources import get_subdomain
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
 from .validate import validate_subdomain
-from .request import send_request
+from .request import send_subdomain_request
+from .state import app_state
+from utils import get_logger
+from datetime import datetime
+
+log = get_logger("Scanner")
 
 def check_subdomain_tui(domain: str, callback):
     config = get_config()
+    log.info(f"Scanning started at: {datetime.now()}")
 
     if os.path.isfile(domain):
         def _file_gen():
@@ -43,17 +49,23 @@ def check_subdomain_tui(domain: str, callback):
     console.print()
 
     try:
-        with ThreadPoolExecutor(max_workers=config.thread) as executor:
+        with ThreadPoolExecutor(max_workers=config.thread) as ex:
+            app_state.executor = ex
             futures = {
-                executor.submit(validate_subdomain, sub, wildcard_baseline): sub
+                ex.submit(validate_subdomain, sub, wildcard_baseline): sub
                 for sub in itertools.islice(subdomain_iter, config.thread * 4)
             }
 
             while futures:
+                if not app_state.is_running:
+                    break
+
                 done, _ = wait(futures.keys(), return_when=FIRST_COMPLETED)
 
                 from analysis import HoneypotAnalyzer
                 for future in done:
+                    if not app_state.is_running:
+                        break
                     try:
                         is_ok, ip, dict_sub = future.result()
 
@@ -81,8 +93,8 @@ def check_subdomain_tui(domain: str, callback):
                     del futures[future]
 
                     next_sub = next(subdomain_iter, None)
-                    if next_sub:
-                        new_f = executor.submit(validate_subdomain, next_sub, wildcard_baseline)
+                    if next_sub and app_state.is_running:
+                        new_f = ex.submit(validate_subdomain, next_sub, wildcard_baseline)
                         futures[new_f] = next_sub
 
                     if config.delay:
@@ -93,6 +105,8 @@ def check_subdomain_tui(domain: str, callback):
 
     except KeyboardInterrupt:
         pass
+    finally:
+        log.info(f"Scanning started at: {datetime.now()}")
 
 def check_wildcard(domain: str):
     config = get_config()
@@ -100,11 +114,11 @@ def check_wildcard(domain: str):
     baselines = {"http": None, "https": None}
 
     with ThreadPoolExecutor(max_workers=2) as ex:
-        http_future = ex.submit(send_request, "http", wild_sub, config.timeout)
-        https_future = ex.submit(send_request, "https", wild_sub, config.timeout)
+        http_future = ex.submit(send_subdomain_request, "http", wild_sub, config.timeout, None, False, True)
+        https_future = ex.submit(send_subdomain_request, "https", wild_sub, config.timeout, None, False, True)
 
-        res_http = http_future.result()
-        res_https = https_future.result()
+        res_http, err_http = http_future.result()
+        res_https, err_https = https_future.result()
 
     from .validate import parse_response
     h = parse_response(res_http, None)

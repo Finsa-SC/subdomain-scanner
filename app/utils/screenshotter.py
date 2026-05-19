@@ -3,6 +3,8 @@ import threading
 import sys
 import platform, os, subprocess, random
 
+from dotenv import load_dotenv
+
 from models.signatures import TITLE_IGNORE
 from .logger import get_logger
 
@@ -16,19 +18,12 @@ def can_screenshot(result: dict) -> tuple[bool, str]:
 
     h_status = http.get("status")
     s_status = https.get("status")
-    h_size = http.get("size")
-    s_size = https.get("size")
     h_title = (http.get("title") or "").lower().strip()
     s_title = (https.get("title") or "").lower().strip()
 
     live_host = {200, 301, 302, 307, 308}
     if h_status not in live_host and s_status not in live_host:
         return False, f"Not a live host (HTTP: {h_status}, HTTPS: {s_status})"
-
-    title = h_title if h_status == 200 else s_title
-    for junk in TITLE_IGNORE:
-        if junk in title:
-            return False, f"Title generic: '{title}'"
 
     return True, ""
 
@@ -75,6 +70,15 @@ def take_screenshot(result: dict, open_image: bool = False):
         return True, str(out_path)
 
     except Exception as e:
+        str_err = str(e)
+        if "DLL load failed" in str_err or "_greenlet" in str_err:
+            msg = (
+                "Screenshot failed: DLL not found. "
+                "Install Visual C++ Redistributable needed "
+                "The link to download has been copied to your clipboard"
+            )
+            log.error(msg)
+            return False, msg
         log.error(f"Screenshot failed: {e}")
         return False, str(e)
 
@@ -88,6 +92,7 @@ def open_image_popup(path: str):
 
 def ensure_chromium():
     from playwright.sync_api import sync_playwright
+    load_dotenv()
     raw_proxy = os.getenv('PROXY_URL', '').strip()
     proxy_url = None
     if raw_proxy and raw_proxy.lower() != 'none':
@@ -108,24 +113,29 @@ def ensure_chromium():
             proxy={'server': proxy_url} if proxy_url else None
         )
         return play, browser
-    except Exception:
-        log.error("Chromium not found! Installing...")
-        subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "chromium"],
-            check=True
-        )
-        log.info("Chromium installed!")
-        play = sync_playwright().start()
-        args = [
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-blink-features=AutomationControlled"
-        ]
-        browser = play.chromium.launch(
-            args=args,
-            proxy={'server': proxy_url} if proxy_url else None
-        )
-        return play, browser
+    except Exception as ex:
+        str_err = str(ex)
+
+        if 'Browser closed' in str_err or "Executable doesn't exist" in str_err:
+            log.info("Chromium not found! Installing...")
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"],
+                check=True
+            )
+            log.info("Chromium installed!")
+            play = sync_playwright().start()
+            args = [
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled"
+            ]
+            browser = play.chromium.launch(
+                args=args,
+                proxy={'server': proxy_url} if proxy_url else None
+            )
+            return play, browser
+        log.error(f"Failed to open chromium: {ex}")
+        return None, None
 
 def do_screenshot(app, result: dict, notify=None, callback=None):
         from utils import take_screenshot, can_screenshot

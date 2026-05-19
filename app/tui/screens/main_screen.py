@@ -7,7 +7,7 @@ from ..widgets.detail_panel import DetailPanel
 from ..widgets.stats_bar import StatsBar
 from ..filter_parser import FilterParser
 import threading
-from utils import can_screenshot, take_screenshot, do_screenshot, get_logger
+from utils import do_screenshot, get_logger
 
 log = get_logger('main_screen')
 
@@ -192,3 +192,12 @@ class MainScreen(Screen):
             if filter_input.has_focus:
                 table.focus()
                 event.stop()
+
+    def get_selected_data(self):
+        table = self.query_one("#subdomain-table", SubdomainTable)
+        return table.get_selected_row()
+
+    def get_all_subdomain(self) -> list[str]:
+        if self.filtered_results:
+            return [str(item['subdomain']) for item in self.filtered_results if 'subdomain' in item]
+        return []

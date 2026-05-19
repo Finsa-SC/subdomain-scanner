@@ -1,4 +1,3 @@
-from pygments.lexers.ruby import FancyLexer
 from textual import work
 from textual.screen import ModalScreen
 from textual.widgets import Input
@@ -11,7 +10,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-from textual_dev import redirect_output
 
 from utils import do_screenshot, parse_port, scan_port, get_logger
 from ..widgets import _format_redirect
@@ -48,8 +46,6 @@ class FullscreenDetail(Screen):
         r = self.result
         http = r.get("http", {})
         https = r.get("https", {})
-        subdomain = r.get("subdomain", "")
-        ip = r.get("ip_address", "No IP")
 
         sections = []
 
@@ -104,8 +100,13 @@ class FullscreenDetail(Screen):
 
                     if status == "done" and info["data"]:
                         d = info["data"]
-                        if key == "favicon" and d.get("hash"):
-                            deep_table.add_row("", f"  [#00A3FF]Hash:[/] {d['hash']}")
+                        if key == "favicon":
+                            if d.get("hash_mmh3"):
+                                deep_table.add_row("", f"  [#00A3FF]MMH3:[/] {d['hash_mmh3']}")
+                            if d.get('matched'):
+                                deep_table.add_row("", f"  [#73DACA]Tech:[/] [bold]{d['matched']}[/]")
+                            if d.get("shodan_query"):
+                                deep_table.add_row("", f"  [#565F89]Scan:[/] {d['shodan_query']}")
                         elif key == "tech_version" and d.get("summary"):
                             for t, v in d["summary"].items():
                                 deep_table.add_row("", f"  [#00A3FF]{t}:[/] {v}")
@@ -298,9 +299,11 @@ class FullscreenDetail(Screen):
     def action_deep_scan(self):
         from analysis import run_deep_scan
         def on_module_done(key, states):
+            self.app.call_from_thread(self._refresh_detail)
+
             if key == 'tech_version':
                 self._merge_deep_tech_to_protocols()
-            self.app.call_from_thread(self._refresh_detail)
+                self.app.call_from_thread(self._refresh_detail)
         self.notify("Starting Deep Scan...", title="Deep Scanning")
 
         run_deep_scan(self.result, on_module_done)
@@ -323,6 +326,7 @@ class FullscreenDetail(Screen):
                 for proto in ('http', 'https'):
                     if proto not in self.result:
                         continue
+
                     current_tech = self.result[proto].get('tech') or []
                     combined = list(set(current_tech + new_tech_list))
                     final_list = []
