@@ -10,8 +10,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
+from tldextract import tldextract
 
-from utils import do_screenshot, parse_port, scan_port, get_logger
+from utils import do_screenshot, parse_port, scan_port, get_logger, load_result_from_cache
 from ..widgets import _format_redirect
 
 log = get_logger("fullscreen")
@@ -299,6 +300,17 @@ class FullscreenDetail(Screen):
     def action_deep_scan(self):
         from analysis import run_deep_scan
         def on_module_done(key, states):
+            self.app.call_from_thread(self._refresh_detail)
+
+            subdomain = self.result.get("subdomain", "")
+            root = tldextract.extract(subdomain)
+            domain_root = f"{root.domain}{root.suffix}"
+            cached_data = load_result_from_cache(domain_root)
+            if subdomain in cached_data:
+                cached_result = cached_data[subdomain]
+                if "deep_scan" in cached_result:
+                    self.result['deep_scan'] = cached_result['deep_scan']
+
             self.app.call_from_thread(self._refresh_detail)
 
             if key == 'tech_version':

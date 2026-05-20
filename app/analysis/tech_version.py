@@ -209,6 +209,19 @@ def detect_version(result: dict, timeout: float = 8.0) -> dict:
     #########DEBUG
     log.info(f"[--DEBUG] {result.get('subdomain')}: Found {len(all_found)} raw hits")
     log.info(f"[--DEBUG] {result.get('subdomain')}: Summary keys -> {list(summary.keys())}")
+
+    tech_list = []
+    for tech, version in summary.items():
+        if version and version != 'detected':
+            tech_list.append(f"{tech}: {version}")
+        else:
+            tech_list.append(tech)
+
+        if proto in ['http', 'https']:
+            existing_tech = result[proto].get("tech") or []
+            combined = list(set(existing_tech + tech_list))
+            result[proto]['tech'] = sorted(combined)
+
     return {
         "found": final,
         "summary": summary,
