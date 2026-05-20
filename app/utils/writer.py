@@ -174,11 +174,11 @@ def load_result_from_cache(domain: str) -> dict:
             log.error(f"Failed to read cache file: {e}")
     return {}
 
-def save_result_to_cache(domain: str, results: dict):
+def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
     try:
         result = load_result_from_cache(domain)
-        result['subdomain'] = results
+        result[subdomain] = results
         with open(cache_file, 'w') as file:
             json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
     except Exception as e:

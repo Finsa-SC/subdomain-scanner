@@ -1,6 +1,5 @@
 import time
 from typing import Any
-from datetime import datetime
 import tldextract
 import os
 import itertools
@@ -12,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
 from .validate import validate_subdomain
 from .request import send_subdomain_request
 from .state import app_state
-from utils import get_logger
+from utils import get_logger, save_result_to_cache
 from datetime import datetime
 
 log = get_logger("Scanner")
@@ -20,6 +19,8 @@ log = get_logger("Scanner")
 def check_subdomain_tui(domain: str, callback):
     config = get_config()
     log.info(f"Scanning started at: {datetime.now()}")
+
+    domain_root = get_domain_root(domain) if '.' in domain else domain
 
     if os.path.isfile(domain):
         def _file_gen():
@@ -85,6 +86,9 @@ def check_subdomain_tui(domain: str, callback):
                             dict_sub["honeypot_score"] = score
                             dict_sub["honeypot_label"] = label
                             dict_sub["honeypot_findings"] = findings
+
+                            subdomain = dict_sub.get("subdomain", "")
+                            save_result_to_cache(domain_root, subdomain, dict_sub)
 
                         callback(dict_sub)
                     except Exception:
