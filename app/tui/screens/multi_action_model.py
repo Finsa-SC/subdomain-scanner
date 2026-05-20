@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from rich.panel import Panel
@@ -8,8 +9,9 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Input, Static
-from utils import COMMAND_TEMPLATES, launch_terminal_multi
+from utils import COMMAND_TEMPLATES, launch_terminal_multi, get_logger
 
+log = get_logger("Multi Action")
 class MultiActionModal(ModalScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
@@ -158,15 +160,17 @@ class MultiActionModal(ModalScreen):
                 prefix='subv_targets_preview_',
                 suffix='.txt'
             )
+            os.close(fd)
 
-            path_file = Path(tmp_file)
             try:
+                path_file = Path(tmp_file)
                 path_file.write_text("\n".join(self.target))
                 full_cmd = template['command_multi'].format(
-                    file_path=tmp_file
+                    file_path=str(tmp_file)
                 )
 
-            except:
+            except Exception as e:
+                log.error(f"Failed to format preview command: {e}")
                 full_cmd = template['command_multi']
 
             self.cmd_preview = full_cmd
