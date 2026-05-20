@@ -67,6 +67,22 @@ class MainScreen(Screen):
 
     def on_subdomain_found(self, results):
         def update_ui():
+            subdomain = results.get("subdomain", "")
+            if subdomain:
+                import tldextract
+                from utils import load_result_from_cache
+
+                root = tldextract.extract(subdomain)
+                domain_root = f"{root.domain}{root.suffix}"
+
+                cached_data = load_result_from_cache(domain_root)
+                if subdomain in cached_data:
+                    cached_result = cached_data[subdomain]
+                    results.update({
+                        k: v for k, v in cached_result.items()
+                        if k in ["deep_scan", "honeypot_score", "honeypot_label", "honeypot_findings"]
+                    })
+
             self.results.append(results)
             self.apply_filter()
             self.update_stats()
