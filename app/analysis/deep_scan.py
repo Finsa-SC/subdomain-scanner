@@ -45,10 +45,9 @@ def run_deep_scan(
         result['deep_scan'] = initial_state()
 
     subdomain = result.get("subdomain", "")
-    from core import check_subdomain_tui
     import tldextract
     root = tldextract.extract(subdomain)
-    domain_root = f"{root.subdomain}{root.suffix}"
+    domain_root = f"{root.domain}{root.suffix}"
 
     def _run_module(key: str, mod: dict):
         result['deep_scan'][key]['status'] = StatusAction.RUNNING
