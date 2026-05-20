@@ -302,15 +302,18 @@ class FullscreenDetail(Screen):
         def on_module_done(key, states):
             self.app.call_from_thread(self._refresh_detail)
 
+            subdomain = self.result.get("subdomain", "")
+            root = tldextract.extract(subdomain)
+            domain_root = f"{root.domain}{root.suffix}"
+            cached_data = load_result_from_cache(domain_root)
+            if subdomain in cached_data:
+                cached_result = cached_data[subdomain]
+                if "deep_scan" in cached_result:
+                    self.result['deep_scan'] = cached_result['deep_scan']
+
+            self.app.call_from_thread(self._refresh_detail)
+
             if key == 'tech_version':
-                subdomain = self.result.get("subdomain", "")
-                root = tldextract.extract(subdomain)
-                domain_root = f"{root.domain}{root.suffix}"
-                cached_data = load_result_from_cache(domain_root)
-                if subdomain in cached_data:
-                    cached_result = cached_data[subdomain]
-                    if "deep_scan" in cached_result:
-                        self.result['deep_scan'] = cached_result['deep_scan']
                 self._merge_deep_tech_to_protocols()
                 self.app.call_from_thread(self._refresh_detail)
         self.notify("Starting Deep Scan...", title="Deep Scanning")
