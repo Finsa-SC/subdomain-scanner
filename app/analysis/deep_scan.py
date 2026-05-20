@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils import get_logger
+from utils import get_logger, update_result_in_cache
 from enum import Enum
 
 log = get_logger("deep_scan")
@@ -44,6 +44,12 @@ def run_deep_scan(
     if 'deep_scan' not in result:
         result['deep_scan'] = initial_state()
 
+    subdomain = result.get("subdomain", "")
+    from core import check_subdomain_tui
+    import tldextract
+    root = tldextract.extract(subdomain)
+    domain_root = f"{root.subdomain}{root.suffix}"
+
     def _run_module(key: str, mod: dict):
         result['deep_scan'][key]['status'] = StatusAction.RUNNING
         on_module_done(key, result['deep_scan'])
@@ -62,6 +68,8 @@ def run_deep_scan(
             })
 
         on_module_done(key, result['deep_scan'])
+
+        update_result_in_cache(domain_root, subdomain, {"deep_scan": result["deep_scan"]})
 
     with ThreadPoolExecutor(max_workers=len(MODULES)) as ex:
         futures = {
