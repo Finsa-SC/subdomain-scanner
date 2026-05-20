@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -6,8 +9,9 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Input, Static
-from utils import COMMAND_TEMPLATES, launch_terminal_multi
+from utils import COMMAND_TEMPLATES, launch_terminal_multi, get_logger
 
+log = get_logger("Multi Action")
 class MultiActionModal(ModalScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
@@ -148,9 +152,27 @@ class MultiActionModal(ModalScreen):
         return table
 
     def _update_preview(self):
+        import tempfile
+
         if self.current_index < len(self.action):
             key, template = self.action[self.current_index]
-            full_cmd = template['command_multi']
+            fd, tmp_file = tempfile.mkstemp(
+                prefix='subv_targets_preview_',
+                suffix='.txt'
+            )
+            os.close(fd)
+
+            try:
+                path_file = Path(tmp_file)
+                path_file.write_text("\n".join(self.target))
+                full_cmd = template['command_multi'].format(
+                    file_path=str(tmp_file)
+                )
+
+            except Exception as e:
+                log.error(f"Failed to format preview command: {e}")
+                full_cmd = template['command_multi']
+
             self.cmd_preview = full_cmd
 
             preview_panel = Panel(
@@ -162,7 +184,9 @@ class MultiActionModal(ModalScreen):
                 border_style="#565F89",
                 padding=(1, 2)
             )
-            self.query_one("#action-preview", Static).update(preview_panel)
+            self.query_one(
+                "#action-preview", Static
+            ).update(preview_panel)
 
             input_widget = self.query_one("#action-input", Input)
             input_widget.value = full_cmd
@@ -176,7 +200,11 @@ class MultiActionModal(ModalScreen):
             if success:
                 self.app.pop_screen()
             else:
-                self.notify("Terminal emulator not found", severity='error')
+                self.notify(
+                    "Failed to open terminal emulator",
+                    severity='error',
+                    timeout=5
+                )
 
     def _execute_custom_cmd(self, custom_cmd: str):
         if custom_cmd:
@@ -185,15 +213,15 @@ class MultiActionModal(ModalScreen):
             if success:
                 self.app.pop_screen()
             else:
-                self.notify("Terminal emulatot not found", severity='error')
+                self.notify(
+                    "Terminal emulatot not found",
+                    severity='error',
+                    timeout=5
+                )
 
     def _run_with_cmd(self, cmd: str) -> bool:
         key = self.action[self.current_index][0] if self.current_index < len(self.action) else 'custom'
-        success, fail = launch_terminal_multi(key, self.target, cmd)
-        if success > 0:
-            self.app.pop_screen()
-        else:
-            self.notify("Failed to launch emulator", severity='error')
+        return launch_terminal_multi(key, self.target, cmd)
 
     def action_dismiss(self):
         self.app.pop_screen()

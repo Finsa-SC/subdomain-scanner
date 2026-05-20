@@ -2,10 +2,8 @@ from pathlib import Path
 import threading
 import sys
 import platform, os, subprocess, random
-
 from dotenv import load_dotenv
 
-from models.signatures import TITLE_IGNORE
 from .logger import get_logger
 
 log = get_logger("screenshotter")
