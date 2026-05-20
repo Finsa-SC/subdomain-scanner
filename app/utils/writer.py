@@ -160,7 +160,7 @@ def schedule_cleanup(file_path: str, delay: float | int = 300.0):
     thread.start()
 
 def get_cache_file(domain: str) -> Path:
-    cache_file = Path("results") / ".cache"
+    cache_file = Path("results") / "cache"
     cache_file.mkdir(parents=True, exist_ok=True)
     return cache_file / f"{domain}_result.json"
 
