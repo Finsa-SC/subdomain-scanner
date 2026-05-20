@@ -1,23 +1,14 @@
-import os
-import platform
-import subprocess
-
-import time
-from unittest.util import three_way_cmp
+import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading
+from pathlib import Path
 
 from models import PROXY_IPS
 from .logger import get_logger
-import hashlib
-import ipaddress
-import json
-from pathlib import Path
-import shutil
 
 log = get_logger("writer")
 def check_results_dir():
     Path("results").mkdir(parents=True, exist_ok=True)
 
-def is_proxy(ip):
+def is_proxy(ip: str):
     if not ip or ip == "No IP":
         return False
     ip_obj = ipaddress.ip_address(ip)
@@ -154,22 +145,16 @@ def copy_to_clipboard(text: str):
     except Exception as e:
         log.error(f"Clipboard copy failed: {e}")
 
-def schedule_cleanup(file_path: str, delay: float = 300.0):
-    import threading
-
+def schedule_cleanup(file_path: str, delay: float | int = 300.0):
     def cleanup():
         time.sleep(delay)
-        _cleanup_temp(file_path)
+        try:
+            path_obj = Path(file_path)
+            if path_obj.exists():
+                path_obj.unlink()
+                log.debug(f"Cleaned up temp file: {file_path}")
+        except Exception as e:
+                log.error(f"Failed to clean up temp file {file_path}: {e}")
 
     thread = threading.Thread(target=cleanup, daemon=True)
     thread.start()
-
-
-def _cleanup_temp(file_path: str):
-    path_obj = Path(file_path)
-    if Path.exists(path_obj):
-        try:
-            path_obj.unlink()
-            log.debug(f"Cleaned up temp file: {file_path}")
-        except Exception as e:
-            log.error(f"Failed to clean up temp file {file_path}: {e}")
