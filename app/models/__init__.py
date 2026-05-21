@@ -1,2 +1,2 @@
 from .scan_config import set_config, get_config
-from .signatures import TITLE_IGNORE
+from .signatures import TITLE_IGNORE, PROXY_IPS, DNS_PROVIDERS, USER_AGENT_FALLBACK
