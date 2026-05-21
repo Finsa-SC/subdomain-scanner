@@ -319,6 +319,13 @@ class HoneypotAnalyzer:
                     f"Default server page title detected: '{title}'")
                 break
 
+        h_headers = self.http.get("raw_header") or {}
+        s_headers = self.https.get("raw_header") or {}
+        if _check_fake_cookies(h_headers) or _check_fake_cookies(s_headers):
+            self._add_signal(
+                "fake_cookie",
+                "Suspiciously predictable cookie values (low entropy)")
+
     def check_subdomain(self):
         if not self._is_host_responsive():
             return
