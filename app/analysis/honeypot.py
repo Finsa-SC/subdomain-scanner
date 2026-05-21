@@ -67,7 +67,6 @@ SUSPICIOUS_HEADER_ORDERS = [
     ["x-aspnet-version", "x-powered-by", "server", "x-honeypot"],
 ]
 
-
 SIGNAL_WEIGHTS = {
     "hash_match":        0.95,
     "honeypot_header":   0.92,
@@ -113,6 +112,8 @@ KNOWN_PROXY_SERVERS = [
     "bunnycdn",
     "cdn77",
 ]
+
+EMPTY_HASH = "d41d8cd98f00b204e9800998ecf8427e"
 
 def noisy_or(probabilities: list[float]) -> float:
     if not probabilities:
@@ -182,14 +183,16 @@ class HoneypotAnalyzer:
 
         for sig in HONEYPOT_SERVERS:
             if sig in h_server or sig in s_server:
-                self._add_signal("server_sig_match",
-                                 f"Server signature matches known honeypot software: '{sig}'")
+                self._add_signal(
+                    "server_sig_match",
+                    f"Server signature matches known honeypot software: '{sig}'")
                 break
 
         for ver in OBSOLETE_VERSIONS:
             if ver in h_server or ver in s_server:
-                self._add_signal("obsolete_version",
-                                 f"Deliberately exposed obsolete version: '{h_server or s_server}'")
+                self._add_signal(
+                    "obsolete_version",
+                    f"Deliberately exposed obsolete version: '{h_server or s_server}'")
                 break
 
     def check_response(self):
@@ -198,8 +201,9 @@ class HoneypotAnalyzer:
 
         for b_hash in (h_hash, s_hash):
             if b_hash and b_hash in HONEYPOT_HASHES:
-                self._add_signal("hash_match",
-                                 f"Body hash matches known honeypot: '{HONEYPOT_HASHES[b_hash]}'")
+                self._add_signal(
+                    "hash_match",
+                    f"Body hash matches known honeypot: '{HONEYPOT_HASHES[b_hash]}'")
                 break
         h_keys = [k.lower() for k in self.http.get("header_keys", [])]
         s_keys = [k.lower() for k in self.https.get("header_keys", [])]
@@ -207,8 +211,9 @@ class HoneypotAnalyzer:
 
         for trap_header in HONEYPOT_HEADERS:
             if trap_header in all_headers:
-                self._add_signal("honeypot_header",
-                                 f"Literal honeypot header found: '{trap_header}'")
+                self._add_signal(
+                    "honeypot_header",
+                    f"Literal honeypot header found: '{trap_header}'")
                 break
 
         for keys in [h_keys, s_keys]:
@@ -217,16 +222,18 @@ class HoneypotAnalyzer:
                 if all(item in keys for item in trap_order):
                     indices = [keys.index(item) for item in trap_order]
                     if indices == sorted(indices):
-                        self._add_signal("header_order",
-                                         "Suspicious HTTP header ordering detected")
+                        self._add_signal(
+                            "header_order",
+                            "Suspicious HTTP header ordering detected")
                         break
 
         h_title = (self.http.get("title") or "").lower().strip()
         s_title = (self.https.get("title") or "").lower().strip()
         for title in HONEYPOT_TITLE:
             if title in h_title or title in s_title:
-                self._add_signal("clickbait_title",
-                                 f"Default server page title detected: '{title}'")
+                self._add_signal(
+                    "clickbait_title",
+                    f"Default server page title detected: '{title}'")
                 break
 
 
@@ -237,8 +244,9 @@ class HoneypotAnalyzer:
         sub = self.data.get("subdomain", "").lower()
         for name in HONEYPOT_NAME:
             if name in sub:
-                self._add_signal("subdomain_name",
-                                 f"High-value bait subdomain: '{name}'")
+                self._add_signal(
+                    "subdomain_name",
+                    f"High-value bait subdomain: '{name}'")
                 break
 
     def check_behavioral(self):
@@ -252,22 +260,25 @@ class HoneypotAnalyzer:
         h_200 = self.http.get("status") == 200
         s_200 = self.https.get("status") == 200
         if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_reverse_proxy():
-            self._add_signal("identical_body_both_proto",
-                             "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
+            self._add_signal(
+                "identical_body_both_proto",
+                "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
 
-        EMPTY_HASH = "d41d8cd98f00b204e9800998ecf8427e"
         if h_200 and h_hash == EMPTY_HASH and h_size == 0:
-            self._add_signal("missing_title",
-                             "HTTP 200 with empty body — server returning nothing")
+            self._add_signal(
+                "missing_title",
+                "HTTP 200 with empty body — server returning nothing")
 
         h_title = self.http.get("title", "").strip().lower()
         s_title = self.https.get("title", "").strip().lower()
         if h_200 and not h_title:
-            self._add_signal("missing_title",
-                             "HTTP 200 but no page title — possible bare honeypot response")
+            self._add_signal(
+                "missing_title",
+                "HTTP 200 but no page title — possible bare honeypot response")
         if s_200 and not s_title:
-            self._add_signal("missing_title",
-                             "HTTPS 200 but no page title — possible bare honeypot response")
+            self._add_signal(
+                "missing_title",
+                "HTTPS 200 but no page title — possible bare honeypot response")
 
     def run_all(self):
         self.check_server()
