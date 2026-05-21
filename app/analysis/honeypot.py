@@ -123,6 +123,15 @@ KNOWN_PROXY_SERVERS = [
     "cdn77",
 ]
 
+FAKE_COOKIE_PATTERNS = [
+    "sessionid=1",
+    "session=default",
+    "auth=test",
+    "token=debug",
+    "jsessionid=0",
+]
+
+
 EMPTY_HASH = "d41d8cd98f00b204e9800998ecf8427e"
 
 def noisy_or(probabilities: list[float]) -> float:
