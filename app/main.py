@@ -82,7 +82,7 @@ def main():
 
     # 6. Scanning
     scanning_group = parser.add_argument_group('Scanning')
-    scanning_group.add_argument("--fresh", action="store_true", help="Ignore cache and start fresh scan")
+    scanning_group.add_argument("--fresh", action="store_true", help="Force fresh scan, ignore cache (cache < 2h auto-resume)")
 
     if len(sys.argv) == 1:
         parser.print_help()
