@@ -345,18 +345,37 @@ class HoneypotAnalyzer:
         h_hash = self.http.get("body_hash")
         s_hash = self.https.get("body_hash")
         h_size = self.http.get("size")
-        h_200 = self.http.get("status") == 200
-        s_200 = self.https.get("status") == 200
+
+        h_status = self.http.get("status")
+        s_status = self.https.get("status")
+
+        h_200 = h_status == 200
+        s_200 = s_status == 200
+
+        # Identical body
         if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_reverse_proxy():
             self._add_signal(
                 "identical_body_both_proto",
                 "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
+
+        # CDN mismatch detection
+        h_server = self.http.get("server", "").lower()
+        s_server = self.https.get("server", "").lower()
+
+        h_is_cdn = any(cdn in h_server for cdn in KNOWN_PROXY_SERVERS)
+        s_is_cdn = any(cdn in s_server for cdn in KNOWN_PROXY_SERVERS)
+
+        if h_is_cdn != s_is_cdn:
+            self._add_signal(
+                "cdn_mismatch",
+                "Inconsistent CDN/Proxy detection between HTTP and HTTPS")
 
         if h_200 and h_hash == EMPTY_HASH and h_size == 0:
             self._add_signal(
                 "missing_title",
                 "HTTP 200 with empty body — server returning nothing")
 
+        # Body entropy deviation
         if h_hash and h_hash != EMPTY_HASH:
             if h_size and isinstance(h_size, int) and h_size < 500 and h_200:
                 self._add_signal(
@@ -365,6 +384,8 @@ class HoneypotAnalyzer:
 
         h_title = self.http.get("title", "").strip().lower()
         s_title = self.https.get("title", "").strip().lower()
+
+        # Empty 200 response
         if h_200 and not h_title:
             self._add_signal(
                 "missing_title",
@@ -376,6 +397,8 @@ class HoneypotAnalyzer:
 
         h_latency = self.http.get("latency")
         s_latency = self.https.get("latency")
+
+        # Timing anomaly
         for latency in (h_latency, s_latency):
             if latency < 30 and h_200:
                 self._add_signal(
