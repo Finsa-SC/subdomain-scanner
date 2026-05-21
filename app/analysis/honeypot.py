@@ -45,7 +45,6 @@ HONEYPOT_SIZE_RANGE = [
 
 
 HONEYPOT_SERVERS = [
-    # Web honeypots
     "glastopf",
     "wordpot",
     "shockpot",
@@ -75,7 +74,7 @@ SIGNAL_WEIGHTS = {
     "identical_body_both_proto": 0.50,
     "header_order":      0.52,
     "clickbait_title":   0.48,
-    "subdomain_name":    0.20,
+    "subdomain_name":    0.10,
     "missing_title":     0.14,
 }
 
