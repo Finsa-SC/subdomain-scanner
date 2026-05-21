@@ -190,11 +190,11 @@ def _check_fake_cookies(headers: dict) -> bool:
     set_cookie = set_cookie.lower()
 
     for fake_pattern in FAKE_COOKIE_PATTERNS:
-        if fake_pattern.lower() in set_cookie
+        if fake_pattern.lower() in set_cookie:
             return True
 
     try:
-        for cookie_part in set_cookie.split(";")
+        for cookie_part in set_cookie.split(";"):
             if '=' in cookie_part:
                 name, value = cookie_part.split('=', 1)
                 entropy = _calculate_entropy(value.strip())
@@ -272,6 +272,11 @@ class HoneypotAnalyzer:
                     "obsolete_version",
                     f"Deliberately exposed obsolete version: '{h_server or s_server}'")
                 break
+
+        if _check_tls_ja3_suspicious(h_server) or _check_tls_ja3_suspicious(s_server):
+            self._add_signal(
+                "tls_ja3_suspicious",
+                f"Suspicious TLS/Server signature: likely honeypot framework")
 
     def check_response(self):
         h_hash = self.http.get("body_hash")
