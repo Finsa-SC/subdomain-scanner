@@ -93,7 +93,7 @@ def check_subdomain_tui(domain: str, callback):
                 app_state.executor = ex
                 futures = {
                     ex.submit(validate_subdomain, sub, wildcard_baseline): sub
-                    for sub in itertools.islice(subdomain_iter, config.thread * 4)
+                    for sub in initial_batch
                 }
 
                 while futures:
