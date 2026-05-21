@@ -67,27 +67,38 @@ SUSPICIOUS_HEADER_ORDERS = [
 ]
 
 SIGNAL_WEIGHTS = {
-    "hash_match":        0.95,
-    "honeypot_header":   0.92,
-    "server_sig_match":  0.82,
-    "obsolete_version":  0.65,
+    "hash_match": 0.95,
+    "honeypot_header": 0.92,
+    "server_sig_match": 0.82,
+    "obsolete_version": 0.65,
     "identical_body_both_proto": 0.50,
-    "header_order":      0.52,
-    "clickbait_title":   0.48,
-    "subdomain_name":    0.10,
-    "missing_title":     0.14,
+    "header_order": 0.52,
+    "clickbait_title": 0.48,
+    "subdomain_name": 0.10,
+    "missing_title": 0.14,
+    "tls_ja3_suspicious": 0.35,
+    "response_timing": 0.25,
+    "fake_cookie": 0.40,
+    "body_entropy": 0.30,
+    "cdn_mismatch": 0.28,
+
 }
 
 SIGNAL_TIER = {
-    "hash_match":       "critical",
-    "honeypot_header":  "critical",
-    "server_sig_match": "critical",
+    "subdomain_name": "weak",
+    "missing_title": "weak",
     "obsolete_version": "strong",
-    "header_order":     "strong",
-    "clickbait_title":  "strong",
+    "header_order": "strong",
+    "clickbait_title": "strong",
     "identical_body_both_proto": "strong",
-    "subdomain_name":   "weak",
-    "missing_title":    "weak",
+    "tls_ja3_suspicious": "strong",
+    "response_timing": "strong",
+    "fake_cookie": "strong",
+    "body_entropy": "strong",
+    "cdn_mismatch": "strong",
+    "hash_match": "critical",
+    "honeypot_header": "critical",
+    "server_sig_match": "critical",
 }
 
 CONFIDENCE_LABELS = [
