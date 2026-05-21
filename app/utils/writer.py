@@ -222,3 +222,8 @@ def is_cached_valid(domain: str, fresh: bool) -> bool:
     else:
         log.info(f"Cache expired: {age:.1f} hours old (> 2h), performing fresh scan")
         return False
+
+def get_scanned_from_cache(domain: str) -> set[str]:
+    cached_data = load_result_from_cache(domain)
+    return set(cached_data.keys())
+
