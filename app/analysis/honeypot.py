@@ -345,7 +345,6 @@ class HoneypotAnalyzer:
         h_hash = self.http.get("body_hash")
         s_hash = self.https.get("body_hash")
         h_size = self.http.get("size")
-
         h_200 = self.http.get("status") == 200
         s_200 = self.https.get("status") == 200
         if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_reverse_proxy():
@@ -357,6 +356,12 @@ class HoneypotAnalyzer:
             self._add_signal(
                 "missing_title",
                 "HTTP 200 with empty body — server returning nothing")
+
+        if h_hash and h_hash != EMPTY_HASH:
+            if h_size and isinstance(h_size, int) and h_size < 500 and h_200:
+                self._add_signal(
+                    "body_entropy",
+                    "Suspiciously small static response body (<500B)")
 
         h_title = self.http.get("title", "").strip().lower()
         s_title = self.https.get("title", "").strip().lower()
