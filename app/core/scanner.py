@@ -31,7 +31,12 @@ def check_subdomain_tui(domain: str, callback):
                         yield s
         subdomain_iter = _file_gen()
     elif "." in domain and not domain.endswith(".txt"):
-        subdomain_iter = iter(get_subdomain(domain, config.all_resource, config.source))
+        subdomain_iter = iter(get_subdomain(
+            domain,
+            config.all_resource,
+            config.source,
+            config.fresh
+        ))
     else:
         return
 
