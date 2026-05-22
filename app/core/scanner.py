@@ -93,12 +93,14 @@ class SubdomainScanner:
                 log.debug("Cache file exists but empty, forcing fresh scan")
             return False
 
+        log.info(f"Scanning started at: {datetime.now()} for {self.domain_root} (from cache)")
         if DEBUG:
             log.debug(f"Loading {len(all_cached)} results from cache")
 
-        for result in  all_cached.items():
+        for result in  all_cached.values():
             self.callback(result)
 
+        log.info(f"Scanner session ended at: {datetime.now()} for {self.domain_root}")
         return True
 
     def _setup_scanned_subs(self):
@@ -113,7 +115,7 @@ class SubdomainScanner:
     def _process_result(self, future_result):
         from analysis import HoneypotAnalyzer
 
-        is_ok, ip, dict_sub = future_result
+        is_ok, ip, dict_sub = future_result.result()
         if not dict_sub:
             return
 
