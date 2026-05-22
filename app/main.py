@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from models.scan_config import ScanConfig
 from pathlib import Path
 import os, sys, argparse, tempfile, shutil, platform
+import platform
 
 ### Init env
 load_dotenv()
@@ -25,6 +26,16 @@ def main():
             temp.close()
             temp_path = temp.name
             sys.argv.extend(["-dL", temp_path])
+
+            if platform.system() == "Windows":
+                import msvcrt
+                tty = open("CON", 'r')
+            else:
+                tty = open("/dev/tty", "r")
+
+            os.dup2(tty.fileno(), 0)
+            tty.close()
+            sys.stdin = os.fdopen(0, 'r')
         except Exception as e:
             print(f"[x] Failed reading pipe data: {e}")
             sys.exit(1) 
