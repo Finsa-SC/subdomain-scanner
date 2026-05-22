@@ -206,9 +206,6 @@ def detect_version(result: dict, timeout: float = 8.0) -> dict:
     final = list(deduped.values())
     summary = _build_summary(final)
     log.info(f"{result.get('subdomain')}: tech versions → {summary}")
-    #########DEBUG
-    log.info(f"[--DEBUG] {result.get('subdomain')}: Found {len(all_found)} raw hits")
-    log.info(f"[--DEBUG] {result.get('subdomain')}: Summary keys -> {list(summary.keys())}")
 
     tech_list = []
     for tech, version in summary.items():
