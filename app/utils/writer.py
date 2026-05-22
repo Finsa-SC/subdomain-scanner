@@ -220,7 +220,7 @@ def is_cached_valid(domain: str, fresh: bool) -> bool:
         log.error(f"No cached found for {domain}")
         return False
 
-    if age > 2.0:
+    if age <= 2.0:
         if DEBUG:
             log.debug(f"Cache valid: {age:.1f} hours old, using cached results")
         return True

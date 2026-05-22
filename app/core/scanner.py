@@ -1,5 +1,6 @@
 import time
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 import tldextract
 import os
@@ -36,21 +37,63 @@ def scanner_session(domain):
 
 def check_subdomain_tui(domain: str, callback):
     config = get_config()
+    log.debug("Scanning is start at debug mode") #debug
 
     domain_root = get_domain_root(domain) if '.' in domain else domain
-    use_cache = is_cached_valid(domain=domain_root, fresh=config.fresh)
     scanned_subs = set()
 
+    if config.domain_list and config.domain_list.strip():
+        file_path = Path(config.domain_list)
+
+        if not file_path.is_file():
+            log.error(f"Mode -dL Aktive: No such file in directory for: {file_path}")
+            return
+
+        if file_path:
+            try:
+                with open(file_path, 'r') as f:
+                    first_line = f.readline().strip()
+                domain_root = get_domain_root(first_line) if '.' in first_line else first_line
+            except Exception as e:
+                log.debug(f"file path exception: {e}")
+                domain_root = "file_scan_target"
+
+            def _file_gen():
+                with open(file_path, "r") as file:
+                    for line in file:
+                        s = line.strip()
+                        if s and not s.startswith("#"):
+                            yield s
+
+            subdomain_iter = _file_gen()
+    else:
+        domain_root = get_domain_root(domain) if '.' in domain else domain
+
+        try:
+            sub_list = get_subdomain(domain, config.all_resource, config.source, config.fresh)
+            if not sub_list:
+                log.error(f"Mode -d Active: get_subdomain find nothing to {domain_root}")
+                return
+            subdomain_iter = iter(sub_list)
+        except Exception as e:
+            log.error(f"Failed to get subdomain from API/Sources: {e}")
+            return
+
+    use_cache = is_cached_valid(domain=domain_root, fresh=config.fresh)
+
     if use_cache:
-        if DEBUG:
-            cached_data = get_scanned_from_cache(domain_root)
-            log.debug(f"Loading {len(cached_data)} results from cache")
-
         all_cached = load_result_from_cache(domain_root)
+        if all_cached:
+            if DEBUG:
+                cached_data = get_scanned_from_cache(domain_root)
+                log.debug(f"Loading {len(cached_data)} results from cache")
 
-        for subdomain, result in all_cached.items():
-            callback(result)
-        return
+            for subdomain, result in all_cached.items():
+                callback(result)
+            return
+        else:
+            if DEBUG:
+                log.debug("Cache file exists but empty, forcing fresh scan")
 
     if config.fresh:
         clear_cache(domain_root)
@@ -60,41 +103,32 @@ def check_subdomain_tui(domain: str, callback):
         if scanned_subs and DEBUG:
             log.info(f"Resume: Found {len(scanned_subs)} previously scanned subdomains")
 
-    if os.path.isfile(domain):
-        def _file_gen():
-            with open(domain, "r") as file:
-                for line in file:
-                    s = line.strip()
-                    if s and not s.startswith("#"):
-                        yield s
-        subdomain_iter = _file_gen()
-    elif "." in domain and not domain.endswith(".txt"):
-        subdomain_iter = iter(get_subdomain(
-            domain,
-            config.all_resource,
-            config.source
-        ))
-    else:
-        return
-
-    wildcard_baseline = check_wildcard(domain_root)
-
-    initial_batch = list(itertools.islice(subdomain_iter, config.thread * 4))
-    if not initial_batch:
-        log.warning(f"No subdomains returned for {domain}")
-        return
 
     console = Console()
     console.print()
+
+    log.debug(f"Scanned sub is : {scanned_subs}") #debug
 
     with scanner_session(domain_root):
         try:
             with ThreadPoolExecutor(max_workers=config.thread) as ex:
                 app_state.executor = ex
-                futures = {
-                    ex.submit(validate_subdomain, sub, wildcard_baseline): sub
-                    for sub in initial_batch
-                }
+                futures = {}
+
+                wildcard_baseline = check_wildcard(domain_root)
+                
+                slots_to_fill = config.thread * 4
+                while slots_to_fill > 0:
+                    sub = next(subdomain_iter, None)
+                    if not sub:
+                        break
+                    if sub in scanned_subs:
+                        if DEBUG:
+                            log.debug(f"Resume Skip (Initial Batch): {sub}")
+                        continue
+                    f = ex.submit(validate_subdomain, sub, wildcard_baseline)
+                    futures[f] = sub
+                    slots_to_fill -= 1
 
                 while futures:
                     if not app_state.is_running:
@@ -133,23 +167,29 @@ def check_subdomain_tui(domain: str, callback):
 
                                 subdomain = dict_sub.get("subdomain", "")
 
-                            callback(dict_sub)
-                            if dict_sub:
+                                callback(dict_sub)
+
                                 save_result_to_cache(domain_root, subdomain, dict_sub)
                                 scanned_subs.add(subdomain)
 
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            log.error(f"Error processing future result: {e}")
 
                         del futures[future]
 
-                        next_sub = next(subdomain_iter, None)
-                        if next_sub and app_state.is_running:
-                            new_f = ex.submit(validate_subdomain, next_sub, wildcard_baseline)
-                            futures[new_f] = next_sub
+                        if app_state.is_running:
+                            next_sub = next(subdomain_iter, None)
+                            while next_sub and next_sub in scanned_subs:
+                                if DEBUG:
+                                    log.debug(f"Resume Skip (Dynamic Queue): {next_sub}")
+                                next_sub = next(subdomain_iter, None)
 
-                        if config.delay:
-                            time.sleep(config.delay)
+                            if next_sub and app_state.is_running:
+                                new_f = ex.submit(validate_subdomain, next_sub, wildcard_baseline)
+                                futures[new_f] = next_sub
+
+                    if config.delay:
+                        time.sleep(config.delay)
 
             console.print()
         except KeyboardInterrupt:

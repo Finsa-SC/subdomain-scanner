@@ -130,6 +130,8 @@ def main():
         args.delay = 0.0
 
     config = ScanConfig(
+        domain=args.domain,
+        domain_list=args.domain_list,
         timeout=args.timeout,
         thread=args.thread,
         no_wildcard=args.no_wildcard,
