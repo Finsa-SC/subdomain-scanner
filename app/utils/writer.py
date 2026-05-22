@@ -202,8 +202,8 @@ def update_result_in_cache(domain: str, subdomain: str, update: dict):
 
 def get_cache_age_hour(domain: str) -> float | None:
     cache_file = get_cache_file(domain)
-    if not cache_file:
-        return
+    if not cache_file.exists():
+        return None
 
     file_mtime = cache_file.stat().st_mtime
     age_second = time.time() - file_mtime

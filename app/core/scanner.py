@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 import tldextract
 import os
-import itertools
 from rich.console import Console
 
 from models import get_config
@@ -35,9 +34,10 @@ def scanner_session(domain):
     finally:
         log.info(f"Scanner session ended at: {datetime.now()} for {domain}")
 
+
+
 def check_subdomain_tui(domain: str, callback):
     config = get_config()
-    log.debug()
 
     domain_root = get_domain_root(domain) if '.' in domain else domain
     scanned_subs = set()
@@ -64,7 +64,7 @@ def check_subdomain_tui(domain: str, callback):
                         if s and not s.startswith("#"):
                             yield s
 
-            subdomain_iter = _file_gen()
+            subdomain_iter = iter(_file_gen())
     else:
         domain_root = get_domain_root(domain) if '.' in domain else domain
 
