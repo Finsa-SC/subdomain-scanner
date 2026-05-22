@@ -68,8 +68,8 @@ COMMAND_TEMPLATES = {
         "command": "wafw00f https://{target}",
         "command_multi": "wafw00f -i {file_path}"
     },
-    "searchploit": {
-        "tool": "SEARCHPLOIT",
+    "searchsploit": {
+        "tool": "SEARCHSPLOIT",
         "description": "Exploit database local search",
         "command": "searchsploit {target}",
         "command_multi": None
@@ -100,15 +100,30 @@ COMMAND_TEMPLATES = {
     }
 }
 
-def launch_terminal(action_key: str, target: str, custom_cmd: str = None):
+def launch_terminal(action_key: str, target: str, custom_cmd: str = None, technologies: list[str] = None):
     system = platform.system()
     if custom_cmd:
         full_cmd = custom_cmd
     else:
-        template = COMMAND_TEMPLATES.get(action_key, "{target}")
+        template = COMMAND_TEMPLATES.get(action_key, {"command": "{target}"})
         if not template and not custom_cmd:
             return False
-        full_cmd = template['command'].format(target=target)
+
+        if action_key == "searchsploit" and technologies:
+            clean_tech_list = []
+            for tech in technologies:
+                cleaned = tech.replace(":", "")
+                if cleaned:
+                    clean_tech_list.append(cleaned)
+
+            if clean_tech_list:
+                cmd_list = [f"searchsploit {t}" for t in clean_tech_list[:3]]
+                full_cmd = " ; ".join(cmd_list)
+            else:
+                full_cmd = template['command'].format(target=target)
+        else:
+            full_cmd = template['command'].format(target=target)
+    log.debug(full_cmd)
 
     if _launch_by_system(full_cmd, system):
         return True
