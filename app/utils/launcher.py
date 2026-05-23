@@ -12,6 +12,7 @@ DEBUG = os.getenv("DEBUG", '').lower().strip() == 'true'
 nmap = "NMAP"
 ffuf = "FFUF"
 sqlmap = "SQLMAP"
+SYSTEM_OS = platform.system()
 
 COMMAND_TEMPLATES = {
     "nmap_quick": {
@@ -109,11 +110,6 @@ def launch_terminal(action_key: str, target: str, custom_cmd: str = None, techno
         if not template and not custom_cmd:
             return False
 
-        SEARCHSPLOIT_SKIP_KEYWORDS = {
-            "cloudflare", "akamai", "fastly", "incapsula",
-            "sucuri", "imperva", "cdn", "waf"
-        }
-
         if action_key == "searchsploit" and technologies:
             clean_tech_list = []
             for tech in technologies:
@@ -142,7 +138,6 @@ def launch_terminal_multi(action_key: str, targets: list[str], custom_cmd: str =
     from utils import schedule_cleanup
 
     template = COMMAND_TEMPLATES.get(action_key)
-    system = platform.system()
 
     if not template and not custom_cmd:
         log.error(f"No template found for action: {action_key}")
@@ -245,12 +240,11 @@ def _launch_linux(cmd: str) -> bool:
     return False
 
 def _launch_by_system(cmd: str) -> bool:
-    system = platform.system()
-    if system == 'Windows':
+    if SYSTEM_OS == 'Windows':
         return _launch_windows(cmd)
-    elif system == 'Darwin':
+    elif SYSTEM_OS == 'Darwin':
         return _launch_macos(cmd)
-    elif system == 'Linux':
+    elif SYSTEM_OS == 'Linux':
         return _launch_linux(cmd)
     return False
 
@@ -260,3 +254,28 @@ def _get_shell_info() -> tuple[str, str]:
         return "cmd", "&"
 
     return "bash", "&&"
+
+def _get_searchsploit_cmd(technologies: list[str]) -> str | None:
+    SEARCHSPLOIT_SKIP_KEYWORDS = {
+        "cloudflare", "akamai", "fastly", "incapsula",
+        "sucuri", "imperva", "cdn", "waf"
+    }
+
+    clean_tech_list = []
+    for tech in technologies:
+        cleaned = tech.replace(":", "").strip()
+        if cleaned and cleaned not in SEARCHSPLOIT_SKIP_KEYWORDS:
+            clean_tech_list.append(tech)
+
+    if not clean_tech_list:
+        log.warning("searchsploit: all techlogies filtered")
+        return None
+
+    clean_tech_list = clean_tech_list[:3]
+
+    if SYSTEM_OS == "Windows":
+        parts = [f'echo === SEARCHSPLOIT: {t} === & searchsploit "{t}"' for t in clean_tech_list]
+        return " & ".join(parts)
+    else:
+        parts = [f'echo "\\n=== SEARCHSPLOIT: {t} ===" && searchsploit "{t}"' for t in clean_tech_list]
+        return " && ".join(parts)
