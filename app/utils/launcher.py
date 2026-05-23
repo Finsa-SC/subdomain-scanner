@@ -3,6 +3,8 @@ import tempfile
 from pathlib import Path
 
 from dotenv import load_dotenv
+from jinja2.lexer import integer_re
+
 from .logger import get_logger
 
 log = get_logger("Launcher")
@@ -264,8 +266,8 @@ def _get_searchsploit_cmd(technologies: list[str]) -> str | None:
     clean_tech_list = []
     for tech in technologies:
         cleaned = tech.replace(":", "").strip()
-        if cleaned and cleaned not in SEARCHSPLOIT_SKIP_KEYWORDS:
-            clean_tech_list.append(tech)
+        if cleaned and cleaned.lower() not in SEARCHSPLOIT_SKIP_KEYWORDS:
+            clean_tech_list.append(cleaned)
 
     if not clean_tech_list:
         log.warning("searchsploit: all techlogies filtered")
