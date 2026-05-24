@@ -18,8 +18,8 @@ from ..widgets import format_redirect
 log = get_logger("fullscreen")
 
 def _get_status_value(status_field) -> str:
-    if hasattr(status_field, "status"):
-        return status_field.status
+    if hasattr(status_field, "value"):
+        return status_field.value
     return str(status_field)
 
 class FullscreenDetail(Screen):
@@ -438,7 +438,7 @@ class FullscreenDetail(Screen):
         tech_module = deep_data.get('tech_version', {})
 
         status_obj = tech_module.get("status")
-        if status_obj and status_obj.value == 'done':
+        if _get_status_value(status_obj) == 'done':
             data_content = tech_module.get('data')
             if data_content and 'summary' in data_content:
                 new_tech_list = []
