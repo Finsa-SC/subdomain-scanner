@@ -1,8 +1,11 @@
-import re
+import re, os
+from dotenv import load_dotenv
 
 from utils import get_logger
 
+load_dotenv()
 log = get_logger("Page Recon")
+DEBUG = os.getenv("DEBUG", "false") == "true"
 
 URL_PATTERNS = [
     r'href=["\']([^"\'#][^"\']*)["\']',
@@ -72,7 +75,7 @@ def _fetch_body(result: dict, timeout: float) -> str | None:
         return res.text, url
     return None, None
 
-def _extract_url(body: str, base_url: str) -> list[dict]:
+def _extract_urls(body: str, base_url: str) -> list[dict]:
     from urllib.parse import urljoin, urlparse
 
     base_parsed = urlparse(base_url)
@@ -195,3 +198,38 @@ def _filter_interesting(urls: list[dict]) -> list[dict]:
                 break
     return interesting
 
+def run_page_recon(result: dict, timeout: float) -> dict:
+    out = {
+        "urls": [],
+        "interesting": [],
+        "login": {"detected": False, "paths": []},
+        "register": {"detected": False, "paths": []},
+        "admin": {"detected": False, "paths": []},
+        "body_fetched": False,
+        "total_urls": 0,
+    }
+
+    body, base_url = _fetch_body(result, timeout)
+    if not body:
+        return out
+
+    out["body_fetched"] = True
+
+    urls = _extract_urls(body, base_url)
+    out["urls"] = urls
+    out["total_urls"] = len(urls)
+    out["interesting"] = _filter_interesting(urls)
+    out["login"] = _detect_login(body, urls)
+    out["register"] = _detect_register(body, urls)
+    out["admin"] = _detect_admin(body, urls)
+
+    if DEBUG:
+        log.debug(
+            f"{result.get('subdomain')}: page_recon → "
+            f"{len(urls)} urls, "
+            f"login={out['login']['detected']}, "
+            f"register={out['register']['detected']}, "
+            f"admin={out['admin']['detected']}"
+        )
+
+    return out
