@@ -234,6 +234,28 @@ class FullscreenDetail(Screen):
                         )
                     sections.append(url_table)
 
+                # JS Credentials
+                js_cred = d.get("js_credentials", {})
+                if js_cred.get("total_found", 0) > 0:
+                    pr_table.add_row("", "")
+                    pr_table.add_row(
+                        "JS Credentials",
+                        f"[#F7768E]⚠ {js_cred['total_found']} found in {len(js_cred.get('js_scanned', []))} files[/]"
+                    )
+                    for finding in js_cred.get("findings", [])[:10]:
+                        pr_table.add_row(
+                            f"  [#F7768E]{finding['label']}[/]",
+                            f"[#FFD700]{finding['masked']}[/] [#565F89](line {finding['line_hint']} · {finding['source_url'].split('/')[-1]})[/]"
+                        )
+                else:
+                    scanned_count = len(js_cred.get("js_scanned", []))
+                    if scanned_count > 0:
+                        pr_table.add_row(
+                            "JS Credentials",
+                            f"[#565F89]Clean ({scanned_count} files scanned)[/]"
+                        )
+                    else:
+                        pr_table.add_row("JS Credentials", "[#565F89]No JS files found[/]")
             else:
                 sections.append(pr_table)
 
