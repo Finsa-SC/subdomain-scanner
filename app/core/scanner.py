@@ -14,7 +14,7 @@ from utils.writer import is_cached_valid, get_scanned_from_cache, clear_cache
 from .validate import validate_subdomain
 from .request import send_subdomain_request
 from .state import app_state
-from utils import get_logger, save_result_to_cache, load_result_from_cache
+from utils import get_logger, save_result_to_cache, load_result_from_cache, get_cache_age_hour
 from datetime import datetime
 
 log = get_logger("Scanner")
@@ -208,6 +208,19 @@ class SubdomainScanner:
                 if self.config.delay:
                     time.sleep(self.config.delay)
         console.print()
+
+    def _preload_cache_to_tui(self):
+        all_cached = load_result_from_cache(self.domain_root)
+        if not all_cached:
+            return
+
+        age = get_cache_age_hour(self.domain_root)
+        if age is None or age > 2.0:
+            return
+
+        log.info(f"Preloading {len(all_cached)} cached result to UI")
+        for result in all_cached.values():
+            self.callback(result)
 
     def run(self):
         if self.config.domain_list and self.config.domain_list.strip():
