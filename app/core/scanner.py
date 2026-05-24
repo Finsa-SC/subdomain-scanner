@@ -211,8 +211,8 @@ class SubdomainScanner:
             if not self._setup_api_iter():
                 return
 
-        if self._load_from_cache():
-            return
+        if not self.config.fresh:
+            self._preload_cache_to_tui()
 
         self._setup_scanned_subs()
 
