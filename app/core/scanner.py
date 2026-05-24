@@ -61,7 +61,6 @@ class SubdomainScanner:
             log.error(f"Failed to read domain list: {e}")
 
         self.domain_root = domain_root_found or "file_scan_target"
-        log.info(f"domain_root resolved: {self.domain_root}")  # debug sementara
 
         def _file_gen():
             with open(file_path, 'r') as file:
