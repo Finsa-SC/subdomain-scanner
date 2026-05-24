@@ -182,3 +182,16 @@ def _detect_admin(body: str, urls: list[dict]) -> dict:
         "signal_count": len(signals_found),
         "paths": list(set(matched_paths)),
     }
+
+def _filter_interesting(urls: list[dict]) -> list[dict]:
+    interesting = []
+    for entry in urls:
+        if not entry.get("internal"):
+            continue
+        path = entry.get("path", "").lower()
+        for pattern in INTERESTING_PATHS:
+            if re.search(pattern, path):
+                interesting.append(entry)
+                break
+    return interesting
+
