@@ -342,11 +342,11 @@ def _scan_js_credentials(urls: list[dict], timeout: float) -> dict:
     }
 
     js_urls = [
-        for u in urls
-        if u .get("internal") and u.get("url", "").split("?")[0].endswith(".js")
+        u for u in urls
+        if u.get("internal") and u.get("url", "").split("?")[0].endswith(".js")
     ]
 
-    for entry in js_urls
+    for entry in js_urls:
         url = entry.get('url', '')
         if _is_important_js(url):
             out['js_scanned'].append(url)
