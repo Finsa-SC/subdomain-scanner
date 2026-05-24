@@ -30,11 +30,11 @@ class SubdomainScanner:
         self.scanned_subs = set()
 
     def __enter__(self):
-        log.info(f"Scanning started at: {datetime.now()} for {self.domain}")
+        log.info(f"Scanning started at: {datetime.now()} for {self.domain_root}")
     def __exit__(self, exc_type, exc_val, exc_tb):
-        log.info(f"Scanner session ended at: {datetime.now()} for {self.domain}")
+        log.info(f"Scanner session ended at: {datetime.now()} for {self.domain_root}")
         if exc_type is KeyboardInterrupt:
-            log.warning(f"Scan interupted by user for {self.domain}")
+            log.warning(f"Scan interupted by user for {self.domain_root}")
             app_state.stop()
             return True
         if exc_type:
