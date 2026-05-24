@@ -234,3 +234,46 @@ def run_page_recon(result: dict, timeout: float) -> dict:
         )
 
     return out
+
+# ─── JS Credential Scanner ────────────────────────────────────────────────────
+JS_SKIP_PATTERNS = [
+    # vendor/library — ga perlu di-scan
+    r'jquery', r'bootstrap', r'lodash', r'moment', r'axios',
+    r'react', r'vue', r'angular', r'webpack', r'chunk',
+    r'polyfill', r'modernizr', r'leaflet', r'chart\.js',
+    r'fontawesome', r'gtm', r'analytics', r'recaptcha',
+    r'cloudflare', r'cdn\.', r'cdnjs', r'unpkg\.com',
+    r'jsdelivr', r'googleapis', r'gstatic',
+]
+
+CREDENTIAL_PATTERNS = [
+    # API Keys
+    {"label": "Generic API Key",      "pattern": r'(?:api[_\-]?key|apikey)\s*[:=]\s*["\']([A-Za-z0-9_\-]{16,})["\']'},
+    {"label": "Generic Secret",       "pattern": r'(?:secret|secret[_\-]?key)\s*[:=]\s*["\']([A-Za-z0-9_\-]{16,})["\']'},
+    {"label": "Generic Token",        "pattern": r'(?:token|access[_\-]?token|auth[_\-]?token)\s*[:=]\s*["\']([A-Za-z0-9_\-\.]{20,})["\']'},
+    {"label": "Generic Password",     "pattern": r'(?:password|passwd|pwd)\s*[:=]\s*["\']([^"\']{6,})["\']'},
+
+    # Cloud
+    {"label": "AWS Access Key",       "pattern": r'AKIA[0-9A-Z]{16}'},
+    {"label": "AWS Secret Key",       "pattern": r'(?:aws[_\-]?secret|secret[_\-]?access[_\-]?key)\s*[:=]\s*["\']([A-Za-z0-9/+=]{40})["\']'},
+    {"label": "Google API Key",       "pattern": r'AIza[0-9A-Za-z\-_]{35}'},
+    {"label": "Firebase URL",         "pattern": r'https://[a-z0-9\-]+\.firebaseio\.com'},
+
+    # Auth
+    {"label": "JWT Token",            "pattern": r'eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}'},
+    {"label": "Bearer Token",         "pattern": r'[Bb]earer\s+([A-Za-z0-9\-_\.]{20,})'},
+    {"label": "Basic Auth",           "pattern": r'[Bb]asic\s+([A-Za-z0-9+/]{20,}={0,2})'},
+
+    # Services
+    {"label": "Stripe Key",           "pattern": r'(?:pk|sk)_(?:live|test)_[0-9a-zA-Z]{24,}'},
+    {"label": "Twilio SID",           "pattern": r'AC[a-zA-Z0-9]{32}'},
+    {"label": "SendGrid Key",         "pattern": r'SG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}'},
+    {"label": "Mailgun Key",          "pattern": r'key-[0-9a-zA-Z]{32}'},
+    {"label": "Slack Token",          "pattern": r'xox[baprs]-[0-9A-Za-z\-]{10,}'},
+    {"label": "GitHub Token",         "pattern": r'gh[pousr]_[A-Za-z0-9]{36,}'},
+    {"label": "Private Key Header",   "pattern": r'-----BEGIN (?:RSA |EC )?PRIVATE KEY-----'},
+
+    # DB connection strings
+    {"label": "DB Connection String", "pattern": r'(?:mongodb|mysql|postgres|postgresql|redis|mssql)://[^\s"\'<>]+'},
+]
+
