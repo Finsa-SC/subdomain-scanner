@@ -145,3 +145,22 @@ def _detect_login(body: str, urls: list[dict]) -> dict:
         "signal_count": len(signals_found),
         "paths": list(set(matched_paths)),
     }
+
+def _detect_register(body: str, urls: list[dict]) -> dict:
+    signals_found = []
+    matched_paths = []
+
+    for sig in REGISTER_SIGNALS:
+        if re.search(sig, body, re.IGNORECASE):
+            signals_found.append(sig)
+
+    for entry in urls:
+        path = entry.get("path", "").lower()
+        if entry.get("category") == "register" or re.search(f'/register|/signup', path):
+            matched_paths.append(entry['url'])
+
+    return {
+        "detected": len(signals_found) > 0 or len(matched_paths) > 0,
+        "signal_count": len(signals_found),
+        "paths": list(set(matched_paths)),
+    }
