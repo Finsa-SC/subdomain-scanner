@@ -52,3 +52,78 @@ INTERESTING_PATHS = [
     r'\.php', r'\.asp', r'\.aspx', r'\.jsp',
     r'\.env', r'\.git', r'\.sql', r'\.bak',
 ]
+
+def _fetch_body(result: dict, timeout: float) -> str | None:
+    from core import send_request
+
+    subdomain = result.get("subdomain", "")
+    https_status = result.get("https", {}).get("status")
+
+    url = f"https://{subdomain}" if https_status in (200, 301, 302, 307, 308) else f"http://{subdomain}"
+    res = send_request(
+        url=url,
+        method="GET",
+        timeout=timeout,
+        allow_redirects=True
+    )
+
+    if res and res.status_code == 200 and res.content:
+        res.encoding = res.charset_encoding or "utf-8"
+        return res.text, url
+    return None, None
+
+def _extract_url(body: str, base_url: str) -> list[dict]:
+    from urllib.parse import urljoin, urlparse
+
+    base_parsed = urlparse(base_url)
+    base_domain = base_parsed.netloc
+
+    found = {}
+
+    for pattern in URL_PATTERNS:
+        for match in re.finditer(pattern, body, re.IGNORECASE):
+            raw = match.group(1).strip()
+            if not raw or raw.startswith("data:") or raw.startswith("javascript:"):
+                continue
+
+            try:
+                full_url = urljoin(base_url, raw)
+                parsed = urlparse(full_url)
+
+                if parsed.scheme not in ("http", "https")
+                    continue
+
+                path = parsed.path.lower()
+                is_internal = parsed.netloc == base_domain or not parsed.netloc
+
+                category = 'external'
+                if is_internal:
+                    category = _categories_path(path)
+
+                if full_url not in found:
+                    found[full_url] = {
+                        "url": full_url,
+                        "path": parsed.path,
+                        "category": category,
+                        "internal": is_internal
+                    }
+            except:
+                continue
+    return list(found.values())
+
+def _categories_path(path: str) -> str:
+    path = path.lower()
+    categories = {
+        "api": [r"/api/", r"/v\d+/", r"/graphql", r"/rest/"],
+        "auth": [r"/login", r"/signin", r"/logout", r"/auth", r"/oauth"],
+        "register": [r"/register", r"/signup", r"/create.?account"],
+        "admin": [r"/admin", r"/dashboard", r"/panel", r"/manage", r"/cp/"],
+        "file": [r"/upload", r"/download", r"/file", r"\.php$", r"\.asp", r"\.jsp"],
+        "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug"],
+    }
+    for cat, pattern in categories:
+        for p in pattern:
+            if re.search(p, path):
+                return cat
+    return "page"
+
