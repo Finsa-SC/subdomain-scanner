@@ -277,3 +277,9 @@ CREDENTIAL_PATTERNS = [
     {"label": "DB Connection String", "pattern": r'(?:mongodb|mysql|postgres|postgresql|redis|mssql)://[^\s"\'<>]+'},
 ]
 
+def _is_important_js(url: str) -> bool:
+    url = url.lower()
+    for pattern in JS_SKIP_PATTERNS:
+        if re.search(pattern, url):
+            return False
+    return True
