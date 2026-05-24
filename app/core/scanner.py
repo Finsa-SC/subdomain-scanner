@@ -36,10 +36,12 @@ class SubdomainScanner:
         if exc_type is KeyboardInterrupt:
             log.warning(f"Scan interupted by user for {self.domain_root}")
             app_state.stop()
+            log.info("Scan result has been save, You can continue in under 2 hours")
             return True
         if exc_type:
             log.error(f"Scanner error: {exc_val}")
             app_state.stop()
+            log.info("Scan result has been save, You can continue in under 2 hours")
             return True
 
     def _setup_file_iter(self):
@@ -217,10 +219,7 @@ class SubdomainScanner:
         self._setup_scanned_subs()
 
         with self:
-            try:
-                self._run_scan()
-            except KeyboardInterrupt:
-                log.warning("Scan interrupted - partial results saved to cache")
+            self._run_scan()
 
 def check_subdomain_tui(domain: str, callback):
     scanner = SubdomainScanner(domain, callback)
