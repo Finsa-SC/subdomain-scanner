@@ -124,7 +124,8 @@ def _categories_path(path: str) -> str:
         "file": [r"/upload", r"/download", r"/file", r"\.php$", r"\.asp", r"\.jsp"],
         "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug"],
     }
-    for cat, pattern in categories:
+
+    for cat, pattern in categories.items():
         for p in pattern:
             if re.search(p, path):
                 return cat
