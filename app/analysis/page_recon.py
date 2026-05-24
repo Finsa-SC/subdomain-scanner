@@ -300,3 +300,29 @@ def _fetch_js(url: str, timeout: float) -> str | None:
         pass
     return None
 
+def _scan_js_credentials(js_content: str, source_url: str) -> list[dict]:
+    findings = []
+    seen = set()
+
+    for cred in CREDENTIAL_PATTERNS:
+        for match in re.finditer(cred["pattern"], js_content, re.IGNORECASE):
+            value = match.group(1) if match.lastindex else match.group(0)
+            value = value.strip()
+
+            key = f"{cred['label']}: {value[:40]}"
+            if key in seen:
+                continue
+            seen.add(key)
+
+            masked = value[:6] + "..." + value[-4:] if len(value) > 12 else value[:4] + "..."
+
+            findings.append({
+                "label": cred['label'],
+                "masked": masked,
+                "source_url": source_url,
+                "line_hint": _get_line_hint(js_content, match.start())
+            })
+    return findings
+
+def _get_line_hint(content: str, pos: int) -> int:
+    return content[:pos].count("\n") + 1
