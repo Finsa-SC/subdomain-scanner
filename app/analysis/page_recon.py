@@ -283,3 +283,20 @@ def _is_important_js(url: str) -> bool:
         if re.search(pattern, url):
             return False
     return True
+
+def _fetch_js(url: str, timeout: float) -> str | None:
+    from core import send_request
+    try:
+        res = send_request(
+            url=url,
+            method="GET",
+            timeout=timeout,
+            allow_redirects=True
+        )
+        if res and res.status_code == 200 and res.content:
+            res.encoding = res.charset_encoding or "utf-8"
+            return res.text
+    except:
+        pass
+    return None
+
