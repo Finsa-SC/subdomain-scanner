@@ -35,15 +35,22 @@ class SubdomainScannerTUI(App):
 
     def action_open_action_menu(self):
         active_screen = self.screen
+        selected = None
 
-        if hasattr(active_screen, "get_selected_data"):
+        if active_screen.__class__.__name__ == "FullScreenDetail" and hasattr(active_screen, "result")
+            selected = active_screen.result
+        elif hasattr(active_screen, "get_selected_data"):
             selected = active_screen.get_selected_data()
-            if selected:
-                self.push_screen(ActionModal(selected))
-            else:
-                self.notify("Please select a subdomain first", severity='warning')
         else:
-            self.notify("Action not available on this screen", severity='error')
+            for screen in self.screen_stack:
+                if screen.__class__.__name__ == "MainScreen" and hasattr(screen, "get_selected_data")
+                    selected = screen.get_selected_data()
+                    break
+
+        if selected:
+            self.push_screen(ActionModal(selected))
+        else:
+            self.notify("Please select a subdomain first", severity='warning')
 
     def action_open_multi_action(self):
         active_screen = self.screen
