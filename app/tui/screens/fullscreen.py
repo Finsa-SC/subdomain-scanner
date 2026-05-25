@@ -12,8 +12,7 @@ from rich.text import Text
 from rich.rule import Rule
 from tldextract import tldextract
 
-from utils import do_screenshot, parse_port, scan_port, get_logger, load_result_from_cache
-from ..widgets import format_redirect
+from utils import do_screenshot, parse_port, scan_port, get_logger, load_result_from_cache, format_redirect
 
 log = get_logger("fullscreen")
 

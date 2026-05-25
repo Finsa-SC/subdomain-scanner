@@ -14,3 +14,19 @@ def format_size(size_bytes: float) -> str:
         i += 1
 
     return f"{int(size_bytes)} {suffixes[i]}" if i == 0 else f"{size_bytes:.1f} {suffixes[i]}"
+
+def format_redirect(url: str, current_subdomain: str = "") -> str:
+    from urllib.parse import urlparse
+
+    if not url or url in ["-", None, "None", ""]:
+        return "-"
+    parsed = urlparse(url)
+
+    if current_subdomain and parsed.netloc == current_subdomain.lower():
+        return "[bold #9ECE6A]HTTPS Upgrade[/]"
+
+    if parsed.netloc:
+        return parsed.netloc
+    if parsed.path:
+        return parsed.path
+    return "-"
