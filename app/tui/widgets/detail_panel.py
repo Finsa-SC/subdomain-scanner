@@ -11,6 +11,8 @@ from .subdomain_table import normalize_status
 
 class DetailPanel(Static):
     def show_detail(self, result):
+        from utils import format_size
+
         if not result:
             self.update("")
             return
@@ -42,7 +44,7 @@ class DetailPanel(Static):
             latency = proto.get("latency")
             redir = proto.get("redir")
             status = proto.get("status")
-            size = proto.get("size")
+            size = format_size(proto.get("size"))
             tech = proto.get("tech", [])
             server = proto.get("server", "Unknown")
             title = proto.get("title", '-')
@@ -55,7 +57,7 @@ class DetailPanel(Static):
             detail_table.add_row("  Status:", str(status))
             detail_table.add_row("  Server:", server)
             detail_table.add_row("  Latency:", f"{latency}ms" if latency is not None else "N/A")
-            detail_table.add_row("  Size:", f"{size}B" if size is not None else "0")
+            detail_table.add_row("  Size:", size if size is not None else "0")
             detail_table.add_row("  Redirect to:", f"{redir}")
             detail_table.add_row("  Title:", title)
 
