@@ -36,6 +36,7 @@ class FilterParser:
 
                 forbidden = (401, 402, 403)
                 redirect = (301, 302, 307, 308)
+                misconfigured = (526, 527, 530)
 
                 matched = False
                 for target in targets:
@@ -51,6 +52,9 @@ class FilterParser:
                             matched = True
                     elif target == 'redirect':
                         if h_status in redirect or s_status in redirect:
+                            matched = True
+                    elif target in 'misconfigured':
+                        if h_status in misconfigured or s_status in misconfigured:
                             matched = True
                     else:
                         try:
