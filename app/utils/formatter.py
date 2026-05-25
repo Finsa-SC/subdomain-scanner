@@ -1,6 +1,6 @@
 def format_size(size_bytes: float) -> str:
     try:
-        if size_bytes is None or isinstance(size_bytes, float | int) or size_bytes <= 0:
+        if size_bytes is None or size_bytes <= 0:
             return "0 B"
 
         size_bytes = int(size_bytes)
