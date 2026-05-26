@@ -275,17 +275,15 @@ class CountTime:
         self.end_time = None
 
     def start(self):
-        self.start_time = datetime.now()
+        self.start_time = time.time()
+        self.end_time = None
 
     def end(self):
-        self.end_time = datetime.now()
-
-    def get_elapsed(self):
-        if self.start_time is None:
-            return 0
-        end = self.end_time if self.end_time else datetime.now()
-        return (end - self.start_time).total_seconds()
+        self.end_time = time.time()
 
     @property
     def total(self):
-        return (self.end_time - self.start_time).total_seconds()
+        if self.start_time is None:
+            return None
+        end = self.end_time if self.end_time else time.time()
+        return f"{end - self.start_time:.1f}"
