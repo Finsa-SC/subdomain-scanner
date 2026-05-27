@@ -67,21 +67,25 @@ SUSPICIOUS_HEADER_ORDERS = [
 ]
 
 SIGNAL_WEIGHTS = {
-    "hash_match": 0.95,
-    "honeypot_header": 0.92,
-    "server_sig_match": 0.82,
-    "obsolete_version": 0.65,
-    "identical_body_both_proto": 0.50,
-    "header_order": 0.52,
-    "clickbait_title": 0.48,
+    #Weak
     "subdomain_name": 0.10,
-    "missing_title": 0.14,
-    "tls_ja3_suspicious": 0.35,
-    "response_timing": 0.25,
-    "fake_cookie": 0.40,
-    "body_entropy": 0.30,
-    "cdn_mismatch": 0.28,
+    "missing_title": 0.12,
+    "cdn_mismatch": 0.15,
+    "response_timing": 0.18,
+    "body_entropy": 0.18,
+    "identical_body_both_proto": 0.25,
 
+    #Strong
+    "tls_ja3_suspicious": 0.35,
+    "fake_cookie": 0.40,
+    "clickbait_title": 0.48,
+    "header_order": 0.52,
+    "obsolete_version": 0.65,
+
+    #Critical
+    "server_sig_match": 0.82,
+    "honeypot_header": 0.92,
+    "hash_match": 0.95,
 }
 
 SIGNAL_TIER = {
