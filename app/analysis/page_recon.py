@@ -206,9 +206,9 @@ def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, b
     out["urls"] = urls
     out["total_urls"] = len(urls)
     out["interesting"] = _filter_interesting(urls)
-    out["login"] = _detect_login(body, urls)
-    out["register"] = _detect_register(body, urls)
-    out["admin"] = _detect_admin(body, urls)
+    out["login"] = _detect_login(shared_body, urls)
+    out["register"] = _detect_register(shared_body, urls)
+    out["admin"] = _detect_admin(shared_body, urls)
     out["js_credentials"] = _scan_js_credentials(urls, timeout)
 
     if DEBUG:
@@ -317,6 +317,7 @@ def _get_line_hint(content: str, pos: int) -> int:
 def _scan_js_credentials(urls: list[dict], timeout: float) -> dict:
     out = {
         "js_scanned": [],
+        "js_skipped": [],
         "findings": [],
         "total_found": 0
     }
