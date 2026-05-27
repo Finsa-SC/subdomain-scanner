@@ -426,6 +426,15 @@ class HoneypotAnalyzer:
         ]
         return sum(flags) >= 2
 
+    def _check_identical_body(self, h_200, s_200, h_hash, s_hash, h_size):
+        if not (h_200 and s_200 and h_hash and h_hash == s_hash)
+            return False
+        if self._is_reverse_proxy():
+            return False
+        if h_size and h_size > 1_000:
+            return False
+        return True
+
     def run_all(self):
         self.check_server()
         self.check_response()
