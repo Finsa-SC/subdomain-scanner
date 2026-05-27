@@ -87,15 +87,15 @@ SIGNAL_WEIGHTS = {
 SIGNAL_TIER = {
     "subdomain_name": "weak",
     "missing_title": "weak",
+    "identical_body_both_proto": "weak",
+    "body_entropy": "weak",
+    "cdn_mismatch": "weak",
+    "response_timing": "weak",
     "obsolete_version": "strong",
     "header_order": "strong",
     "clickbait_title": "strong",
-    "identical_body_both_proto": "strong",
     "tls_ja3_suspicious": "strong",
-    "response_timing": "strong",
     "fake_cookie": "strong",
-    "body_entropy": "strong",
-    "cdn_mismatch": "strong",
     "hash_match": "critical",
     "honeypot_header": "critical",
     "server_sig_match": "critical",
@@ -357,10 +357,10 @@ class HoneypotAnalyzer:
         s_200 = s_status == 200
 
         # Identical body
-        if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_reverse_proxy():
+        if self._check_identical_body(h_200, s_200, h_hash, s_hash, h_size):
             self._add_signal(
                 "identical_body_both_proto",
-                "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
+                "Identical small body on HTTP and HTTPS (no redirect) — abnormal for real servers")
 
         # CDN mismatch detection
         h_server = self.http.get("server", "").lower()
@@ -368,6 +368,9 @@ class HoneypotAnalyzer:
 
         h_is_cdn = any(cdn in h_server for cdn in KNOWN_PROXY_SERVERS)
         s_is_cdn = any(cdn in s_server for cdn in KNOWN_PROXY_SERVERS)
+
+        h_title = self.http.get("title", "").strip().lower()
+        s_title = self.https.get("title", "").strip().lower()
 
         if h_is_cdn != s_is_cdn:
             self._add_signal(
@@ -379,15 +382,12 @@ class HoneypotAnalyzer:
                 "missing_title",
                 "HTTP 200 with empty body — server returning nothing")
 
-        # Body entropy deviation
-        if h_hash and h_hash != EMPTY_HASH:
+        # Suspicious minimal response
+        if self._check_suspicious_minimal_response(h_status, h_hash, h_size, h_title):
             if h_size and isinstance(h_size, int) and h_size < 500 and h_200:
                 self._add_signal(
                     "body_entropy",
-                    "Suspiciously small static response body (<500B)")
-
-        h_title = self.http.get("title", "").strip().lower()
-        s_title = self.https.get("title", "").strip().lower()
+                    "Suspiciously minimal response: tiny body with no title")
 
         # Empty 200 response
         if h_200 and not h_title:
@@ -403,17 +403,11 @@ class HoneypotAnalyzer:
         s_latency = self.https.get("latency")
 
         # Timing anomaly
-        for latency in (h_latency, s_latency):
-            if latency and isinstance(latency, int):
-                if latency < 30 and h_200:
-                    self._add_signal(
-                        "response_timing",
-                        f"Unnaturally fast response time: {latency}ms (likely honeypot)")
-                elif latency > 15000:
-                    self._add_signal(
-                        "response_timing",
-                        f"Suspiciously slow response time: {latency}ms (artificial delay)")
-
+        is_suspicious, timing_note = self._check_timing_anomaly(h_latency, s_latency, h_200)
+        if is_suspicious:
+            note = timing_note if isinstance(timing_note, str) else f"Unnaturally fast/slow response time: {timing_note}ms"
+            self._add_signal("response_timing", note)
+        
     @staticmethod
     def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title) -> bool:
         if not (h_status == 200 and h_hash and h_hash != EMPTY_HASH):
