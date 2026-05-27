@@ -15,7 +15,7 @@ def _run_favicon(result: dict, timeout: float, shared_body: str = None, base_url
     from utils import fetch_favicon
     return fetch_favicon(result, timeout)
 
-def _run_tech_version(result: dict, timeout: float, shared_body: str = None, base_url = None) -> dict:
+def _run_tech_version(result: dict, timeout: float, shared_body: str = None) -> dict:
     from .tech_version import detect_version
     return detect_version(result, timeout)
 
