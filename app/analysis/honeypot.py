@@ -436,7 +436,7 @@ class HoneypotAnalyzer:
 
         suspicious_latency = []
         for latency in (h_latency, s_latency):
-            if not latency and not isinstance(latency, int):
+            if not latency or not isinstance(latency, int):
                 continue
             if latency < 10:
                 suspicious_latency.append(latency)
@@ -449,7 +449,7 @@ class HoneypotAnalyzer:
         if h_latency and s_latency and abs(h_latency - s_latency) < 5:
             return True, f"Suspiously consistent latency: {h_latency}ms/{s_latency}ms"
 
-        return len(suspicious_latency) > 0, suspicious_latency[0]
+        return True, suspicious_latency[0]
 
 
     def run_all(self):
