@@ -73,8 +73,9 @@ def run_deep_scan(
             timeout=timeout,
             allow_redirects=True
         )
-        res.encoding = res.charset_encoding or 'utf-8'
-        shared_body_html = res.text
+        if res and res.status_code == 200 and res.content:
+            res.encoding = res.charset_encoding or 'utf-8'
+            shared_body_html = res.text
     except Exception as e:
         log.error(f"Failed to fetch shared body for {subdomain}: {e}")
 
