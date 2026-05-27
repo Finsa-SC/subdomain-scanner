@@ -1,4 +1,6 @@
 import sys
+from Tools.scripts.mailerdaemon import emparse_list
+
 from textual.app import App
 from textual.binding import Binding
 
@@ -14,6 +16,7 @@ class SubdomainScannerTUI(App):
         Binding("q", "force_quit", "Quit", priority=True),
         Binding("a", "open_action_menu", priority=True),
         Binding("A", "open_multi_action", "Multi Action"),
+        Binding("b", "open_browser", "Open Browser"),
         Binding("ctrl+c", "force_quit", "Quit", show=False),
     ]
 
@@ -34,15 +37,22 @@ class SubdomainScannerTUI(App):
 
     def action_open_action_menu(self):
         active_screen = self.screen
+        selected = None
 
-        if hasattr(active_screen, "get_selected_data"):
+        if active_screen.__class__.__name__ == "FullScreenDetail" and hasattr(active_screen, "result"):
+            selected = active_screen.result
+        elif hasattr(active_screen, "get_selected_data"):
             selected = active_screen.get_selected_data()
-            if selected:
-                self.push_screen(ActionModal(selected))
-            else:
-                self.notify("Please select a subdomain first", severity='warning')
         else:
-            self.notify("Action not available on this screen", severity='error')
+            for screen in self.screen_stack:
+                if screen.__class__.__name__ == "MainScreen" and hasattr(screen, "get_selected_data"):
+                    selected = screen.get_selected_data()
+                    break
+
+        if selected:
+            self.push_screen(ActionModal(selected))
+        else:
+            self.notify("Please select a subdomain first", severity='warning')
 
     def action_open_multi_action(self):
         active_screen = self.screen
@@ -54,6 +64,30 @@ class SubdomainScannerTUI(App):
                 self.notify("No subdomain available for mass action", severity='warning')
         else:
             self.notify("Multi-action not available on this screen", severity='error')
+
+    def action_open_browser(self):
+        active_screen = self.screen
+        selected = None
+
+        if active_screen.__class__.__name__ == "FullScreenDetail" and hasattr(active_screen, "result"):
+            selected = active_screen.result
+        elif hasattr(active_screen, "get_selected_data"):
+            selected = active_screen.get_selected_data()
+        else:
+            for screen in self.screen_stack:
+                if screen.__class__.__name__ == "MainScreen" and hasattr(screen, "get_selected_data"):
+                    selected = screen.get_selected_data()
+                    break
+
+        if not selected:
+            self.notify("Select a subdomain first", severity="warning")
+            return
+
+        import webbrowser
+        proto = "https" if selected.get("https", {}).get("status") == 200 else "http"
+        url = f"{proto}://{selected['subdomain']}"
+        webbrowser.open(url)
+        self.notify(f"Opened: {url}")
 
 def run_tui(config, domain_or_file):
     app = SubdomainScannerTUI(config, domain_or_file)
