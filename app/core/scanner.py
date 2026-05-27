@@ -9,7 +9,7 @@ from models import get_config
 from sources import get_subdomain
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
 
-from utils.writer import is_cached_valid, get_scanned_from_cache, clear_cache
+from utils.writer import get_scanned_from_cache, clear_cache
 from .validate import validate_subdomain
 from .request import send_subdomain_request
 from .state import app_state
