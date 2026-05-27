@@ -1,5 +1,4 @@
 import sys
-from Tools.scripts.mailerdaemon import emparse_list
 
 from textual.app import App
 from textual.binding import Binding
