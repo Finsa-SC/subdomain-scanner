@@ -196,7 +196,12 @@ def validate_subdomain(sub, wildcard_baseline):
             except Exception as e:
                 log.error(f"Failed to auto deep scan for {sub}: {e}")
 
-        status_ok = 200 in [http_status, https_status]
+        status_ok = False
+        redirects = (200, 301, 302, 307, 308)
+        for status in (http_status, https_status):
+            if isinstance(status, int) and (status == 200 or status in redirects):
+                status_ok = True
+                break
 
         return status_ok, ip_address, data
     except Exception as e:
