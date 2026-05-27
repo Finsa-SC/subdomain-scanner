@@ -135,11 +135,10 @@ def validate_subdomain(sub, wildcard_baseline):
                 baselines["https"]["title"] == https_title):
                 https_wildcard = True
         if (http_wildcard or https_wildcard) and config.no_wildcard:
-            data = {"subdomain": sub, "signing": "[W]", "status": "Filtered (Wildcard)"}
+            data = {"subdomain": sub, "status": "Filtered (Wildcard)"}
             return False, ip_address, data
 
         is_any_wildcard = http_wildcard or https_wildcard
-        signing = sign(http_status, https_status, is_any_wildcard)
 
         data = {
             "timestamp": timestamp,
@@ -169,7 +168,6 @@ def validate_subdomain(sub, wildcard_baseline):
                 "body_hash": s.get("body_hash"),
                 "header_keys": s.get("header_keys", []),
             },
-            "signing": signing,
             "wildcard": is_any_wildcard,
         }
 
@@ -178,15 +176,15 @@ def validate_subdomain(sub, wildcard_baseline):
             if ports:
                 data["ports"] = ports
 
-        if config.screenshot and (isinstance(http_status, int) or isinstance(https_status, int)):
-            from utils import take_screenshot, can_screenshot
-            ok, reason = can_screenshot(data)
-            if ok:
-                success, path_or_err = take_screenshot(data)
-                if success:
-                    data["screenshot"] = path_or_err
+        status_ok = False
+        redirects = (200, 301, 302, 307, 308)
+        for status in (http_status, https_status):
+            if isinstance(status, int) and (status == 200 or status in redirects):
+                status_ok = True
+                break
+        data['is_live'] = status_ok
 
-        if config.deep_scan and (isinstance(http_status, int) or isinstance(https_status, int)):
+        if config.deep_scan and any(isinstance(s, int) for s in (http_status, https_status)):
             from analysis import run_deep_scan
 
             try:
@@ -198,7 +196,15 @@ def validate_subdomain(sub, wildcard_baseline):
             except Exception as e:
                 log.error(f"Failed to auto deep scan for {sub}: {e}")
 
-        status_ok = 200 in [http_status, https_status]
+        if status_ok:
+            if config.screenshot:
+                from utils import take_screenshot, can_screenshot
+
+                ok, reason = can_screenshot(data)
+                if ok:
+                    success, path_or_err = take_screenshot(data)
+                    if success:
+                        data["screenshot"] = path_or_err
 
         return status_ok, ip_address, data
     except Exception as e:
