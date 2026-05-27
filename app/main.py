@@ -3,7 +3,7 @@ from utils import parse_port
 from dotenv import load_dotenv
 from models.scan_config import ScanConfig
 from pathlib import Path
-import os, sys, argparse, tempfile, shutil, platform
+import os, sys, argparse, tempfile, shutil
 import platform
 
 ### Init env
@@ -40,9 +40,9 @@ def main():
             print(f"[x] Failed reading pipe data: {e}")
             sys.exit(1) 
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    base_dir = os.path.dirname(current_dir)
-    banner_path = os.path.join(base_dir, "assets", "banner.txt")
+    current_dir = Path(__file__).resolve().parent
+    base_dir = current_dir.parent
+    banner_path = base_dir / "assets" / "banner.txt"
     try:
         with open(banner_path, 'r', encoding='utf-8') as file:
             banner = file.read()
