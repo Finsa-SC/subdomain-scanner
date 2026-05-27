@@ -414,6 +414,18 @@ class HoneypotAnalyzer:
                         "response_timing",
                         f"Suspiciously slow response time: {latency}ms (artificial delay)")
 
+    @staticmethod
+    def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title):
+        if not (h_status == 200 and h_hash and h_hash != EMPTY_HASH):
+            return False
+
+        flags = [
+            h_size is not None and h_size < 200,
+            not h_title or h_title not in ("", "-"),
+            h_size == 0
+        ]
+        return sum(flags) >= 2
+
     def run_all(self):
         self.check_server()
         self.check_response()
