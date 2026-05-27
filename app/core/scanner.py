@@ -1,5 +1,4 @@
 import time
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 import tldextract
@@ -28,11 +27,17 @@ class SubdomainScanner:
         self.domain_root = None
         self.subdomain_iter = None
         self.scanned_subs = set()
+        self.count_time = CountTime()
 
     def __enter__(self):
         log.info(f"Scanning started at: {datetime.now()} for {self.domain_root}")
+        self.count_time.start()
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         log.info(f"Scanner session ended at: {datetime.now()} for {self.domain_root}")
+        self.count_time.end()
+        log.info(f"Scanned in {self.count_time.total}")
+
         if exc_type is KeyboardInterrupt:
             log.warning(f"Scan interupted by user for {self.domain_root}")
             app_state.stop()
@@ -66,8 +71,8 @@ class SubdomainScanner:
 
         def _file_gen():
             with open(file_path, 'r') as file:
-                for line in file:
-                    s = line.strip()
+                for row in file:
+                    s = row.strip()
                     if s and not s.startswith("#"):
                         yield s
 
@@ -275,17 +280,15 @@ class CountTime:
         self.end_time = None
 
     def start(self):
-        self.start_time = datetime.now()
+        self.start_time = time.time()
+        self.end_time = None
 
     def end(self):
-        self.end_time = datetime.now()
-
-    def get_elapsed(self):
-        if self.start_time is None:
-            return 0
-        end = self.end_time if self.end_time else datetime.now()
-        return (end - self.start_time).total_seconds()
+        self.end_time = time.time()
 
     @property
     def total(self):
-        return (self.end_time - self.start_time).total_seconds()
+        if self.start_time is None:
+            return None
+        end = self.end_time if self.end_time else time.time()
+        return f"{end - self.start_time:.1f}"
