@@ -415,7 +415,7 @@ class HoneypotAnalyzer:
                         f"Suspiciously slow response time: {latency}ms (artificial delay)")
 
     @staticmethod
-    def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title):
+    def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title) -> bool:
         if not (h_status == 200 and h_hash and h_hash != EMPTY_HASH):
             return False
 
@@ -426,14 +426,37 @@ class HoneypotAnalyzer:
         ]
         return sum(flags) >= 2
 
-    def _check_identical_body(self, h_200, s_200, h_hash, s_hash, h_size):
-        if not (h_200 and s_200 and h_hash and h_hash == s_hash)
+    def _check_identical_body(self, h_200, s_200, h_hash, s_hash, h_size) -> bool:
+        if not (h_200 and s_200 and h_hash and h_hash == s_hash):
             return False
         if self._is_reverse_proxy():
             return False
         if h_size and h_size > 1_000:
             return False
         return True
+
+    @staticmethod
+    def _check_timing_anomaly(h_latency, s_latency, h_200):
+        if not h_200:
+            return False, None
+
+        suspicious_latency = []
+        for latency in (h_latency, s_latency):
+            if not latency and not isinstance(latency, int):
+                continue
+            if latency < 10:
+                suspicious_latency.append(latency)
+            elif latency > 20_000:
+                suspicious_latency.append(latency)
+
+        if not suspicious_latency:
+            return False, None
+
+        if h_latency and s_latency and abs(h_latency - s_latency) < 5:
+            return True, f"Suspiously consistent latency: {h_latency}ms/{s_latency}ms"
+
+        return len(suspicious_latency) > 0, suspicious_latency[0]
+
 
     def run_all(self):
         self.check_server()
