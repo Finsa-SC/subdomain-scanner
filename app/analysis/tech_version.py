@@ -210,7 +210,7 @@ def detect_version(result: dict, timeout: float = 8.0, shared_body: str = None, 
     return {
         "found": final,
         "summary": summary,
-        "body_fetched": body is not None,
+        "body_fetched": shared_body is not None,
     }
 
 def _source_priority(source: str) -> int:

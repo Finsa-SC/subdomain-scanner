@@ -11,15 +11,15 @@ class StatusAction(Enum):
     DONE = "done"
     ERROR = "error"
 
-def _run_favicon(result: dict, timeout: float) -> dict:
+def _run_favicon(result: dict, timeout: float, shared_body: str = None, base_url = None) -> dict:
     from utils import fetch_favicon
     return fetch_favicon(result, timeout)
 
-def _run_tech_version(result: dict, timeout: float) -> dict:
+def _run_tech_version(result: dict, timeout: float, shared_body: str = None, base_url = None) -> dict:
     from .tech_version import detect_version
     return detect_version(result, timeout)
 
-def _run_page_recon(result: dict, timeout: float) -> dict:
+def _run_page_recon(result: dict, timeout: float, shared_body: str = None, base_url = None) -> dict:
     from .page_recon import run_page_recon
     return run_page_recon(result, timeout)
 
