@@ -164,7 +164,7 @@ def _build_summary(found: list[dict]) -> dict[str, str]:
             summary[tech] = version
     return summary
 
-def detect_version(result: dict, timeout: float = 8.0, shared_body: str = None) -> dict:
+def detect_version(result: dict, shared_body: str = None) -> dict:
     all_found = []
 
     #scan header
@@ -202,10 +202,11 @@ def detect_version(result: dict, timeout: float = 8.0, shared_body: str = None) 
         else:
             tech_list.append(tech)
 
-        if proto in ['http', 'https']:
-            existing_tech = result[proto].get("tech") or []
-            combined = list(set(existing_tech + tech_list))
-            result[proto]['tech'] = sorted(combined)
+        for proto in ['http', 'https']:
+            if proto in result:
+                existing_tech = result[proto].get("tech") or []
+                combined = list(set(existing_tech + tech_list))
+                result[proto]['tech'] = sorted(combined)
 
     return {
         "found": final,
