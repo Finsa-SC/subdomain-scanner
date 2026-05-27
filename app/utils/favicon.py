@@ -110,22 +110,24 @@ def fetch_favicon(result: dict, timeout: float = 5.0, shared_body: str = None, b
     if is_invalid:
         if DEBUG:
             log.debug(f"{subdomain}: /favicon.ico Empty, trying parse HTML...")
-        html_bytes, html_type = _fetch_content(base_url, timeout)
 
-        if not html_bytes:
-            return out
+        html_str = None
 
-        if not html_bytes or "html" not in (html_type or "").lower():
-            return out
+        if shared_body:
+            html_str = shared_body
+        else:
+            html_bytes, html_type = _fetch_content(base_url, timeout)
+            if html_bytes and 'html' in (html_type or '').lower():
+                html_str = html_bytes.decode("utf-8", errors="ignore")
 
-        html_str = html_bytes.decode("utf-8", errors="ignore")
-        found_url = _find_favicon_in_html(html_str, base_url)
-        if found_url:
-            data, _ = _fetch_content(found_url, timeout)
-            if data and (len(data) < 100 or data[:4] == b"<html"):
-                data = None
-            if data:
-                favicon_url = found_url
+        if html_str:
+            found_url = _find_favicon_in_html(html_str, base_url)
+            if found_url:
+                data, _ = _fetch_content(found_url, timeout)
+                if data and (len(data) < 100 or data[:4] == b"<html"):
+                    data = None
+                if data:
+                    favicon_url = found_url
 
     if not data:
         out["error"] = "Favicon not found (tried /favicon.ico and HTML parse)"
