@@ -49,7 +49,7 @@ def run_deep_scan(
         on_module_done: callable,
         timeout: float = 8.0
 ):
-    from core import app_state
+    from core import app_state, send_request
 
     if not app_state.is_running:
         return
@@ -61,6 +61,22 @@ def run_deep_scan(
     import tldextract
     root = tldextract.extract(subdomain)
     domain_root = f"{root.domain}{root.suffix}"
+
+    https_status = result.get('https', {}).get('status')
+    base_url = f"https://{subdomain}" if https_status in (200, 301, 302, 307, 308) else f"http://{subdomain}"
+
+    shared_body_html = None
+    try:
+        res = send_request(
+            url=base_url,
+            method="GET",
+            timeout=timeout,
+            allow_redirects=True
+        )
+        res.encoding = res.charset_encoding or 'utf-8'
+        shared_body_html = res.text
+    except Exception as e:
+        log.error(f"Failed to fetch shared body for {subdomain}: {e}")
 
     def _run_module(key: str, mod: dict):
         result['deep_scan'][key]['status'] = StatusAction.RUNNING
