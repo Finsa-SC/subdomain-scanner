@@ -384,10 +384,9 @@ class HoneypotAnalyzer:
 
         # Suspicious minimal response
         if self._check_suspicious_minimal_response(h_status, h_hash, h_size, h_title):
-            if h_size and isinstance(h_size, int) and h_size < 500 and h_200:
-                self._add_signal(
-                    "body_entropy",
-                    "Suspiciously minimal response: tiny body with no title")
+            self._add_signal(
+                "body_entropy",
+                "Suspiciously minimal response: tiny body with no title")
 
         # Empty 200 response
         if h_200 and not h_title:
