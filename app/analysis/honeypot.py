@@ -407,7 +407,7 @@ class HoneypotAnalyzer:
         if is_suspicious:
             note = timing_note if isinstance(timing_note, str) else f"Unnaturally fast/slow response time: {timing_note}ms"
             self._add_signal("response_timing", note)
-        
+
     @staticmethod
     def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title) -> bool:
         if not (h_status == 200 and h_hash and h_hash != EMPTY_HASH):
@@ -415,8 +415,8 @@ class HoneypotAnalyzer:
 
         flags = [
             h_size is not None and h_size < 200,
-            not h_title or h_title not in ("", "-"),
-            h_size == 0
+            not h_title or h_title in ("", "-"),
+            h_size is not None and h_size == 0,
         ]
         return sum(flags) >= 2
 
