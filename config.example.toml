@@ -10,7 +10,16 @@ retry = 0
 [network]
 proxy_url = ""
 
-[tui]
+[display]
+columns = [
+    { header = "St",        key = "icon",                    width = 4  },
+    { header = "Subdomain", key = "subdomain",               width = 40 },
+    { header = "IP",        key = "ip_address",              width = 16 },
+    { header = "Server",    key = "http.server",             width = 12 },
+    { header = "Status",    key = "http.status",             width = 6  },
+    { header = "Title",     key = "http.title",              width = 25 },
+]
+
 # Number of subdomains to buffer before triggering a UI render update.
 # Higher values save CPU; lower values provide real-time updates.
 batch_size = 5
