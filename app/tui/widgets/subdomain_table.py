@@ -1,3 +1,4 @@
+import select
 from textual.widgets import DataTable
 from rich.text import Text
 from models import BATCH_SIZE, DISPLAY_COLUMNS
@@ -69,13 +70,24 @@ class SubdomainTable(DataTable):
                 self.add_row(*self._build_row(result))
 
     def _build_row(self, result) -> tuple:
-        icon = self.get_status_icon(result)
-        subdomain = self.truncate(result.get("subdomain", ""), 38)
-        ip = result.get("ip_address", "No IP")
-        server = self.truncate(result.get("server", "Unknown"), 10)
-        h_status = normalize_status(result.get("http", {}).get("status"))
-        s_status = normalize_status(result.get("https", {}).get("status"))
-        return icon, subdomain, ip, server, f"{h_status}/{s_status}"
+        cells = []
+        for col in self._columns:
+            key = col['key']
+            width = col.get('width', 12)
+
+            if key == 'icon':
+                cells.append(self.get_status_icon(result))
+                continue
+
+            if key == 'status' or key == 'http.status/https.status':
+                h = normalize_status(result.get('http', {}).get('status'))
+                s = normalize_status(result.get('https', {}).get('status'))
+                cells.append(f"{h}/{s}")
+                continue
+
+            raw = _get_nested(result, key)
+            cells.append(self.truncate(raw, width - 2)) if raw else ""
+        return tuple(cells)
 
     def _get_cursor_subdomain(self) -> str | None:
         if self.cursor_row is not None and self.cursor_row < len(self.result_mapping):
