@@ -58,11 +58,20 @@ class MainScreen(Screen):
     def start_scan(self):
         from core import check_subdomain_tui
 
+        table = self.query_one("#subdomain-table", SubdomainTable)
+        table.start_scan_mode()
+
         def scan_worker():
             check_subdomain_tui(
                 self.domain_or_file,
                 callback=self.on_subdomain_found
             )
+            def finish():
+                t = self.query_one("#subdomain-table", SubdomainTable)
+                t.start_scan_mode()
+                self.apply_filter()
+                self.update_stats()
+            self.app.call_from_thread(finish)
 
         thread = threading.Thread(target=scan_worker, daemon=True)
         thread.start()
