@@ -1,6 +1,18 @@
 from textual.widgets import DataTable
 from rich.text import Text
-from models import BATCH_SIZE
+from models import BATCH_SIZE, DISPLAY_COLUMNS
+
+def _get_nested(data: dict, key: str, fallback: str = "") -> str:
+    parts = key.split(".")
+    val = data
+
+    for part in parts:
+        if not isinstance(val, dict):
+            return fallback
+        val = val.get(part, fallback)
+    if val is None or val == fallback:
+        return fallback
+    return str(val)
 
 class SubdomainTable(DataTable):
     def __init__(self, *args, **kwargs):
