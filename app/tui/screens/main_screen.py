@@ -67,8 +67,14 @@ class MainScreen(Screen):
         thread = threading.Thread(target=scan_worker, daemon=True)
         thread.start()
 
-    def on_subdomain_found(self, results):
+    def on_subdomain_found(self, results, batch: bool = False):
         def update_ui():
+            if batch:
+                self.results.extend(results)
+                self.apply_filter()
+                self.update_stats()
+                return
+
             subdomain = results.get("subdomain", "")
             if subdomain:
                 from utils import load_result_from_cache, format_subdomain
@@ -85,8 +91,13 @@ class MainScreen(Screen):
                     })
 
             self.results.append(results)
-            self.apply_filter()
-            self.update_stats()
+            self._live_scan_counter += 1
+
+            if self._live_scan_counter % 2 == 0:
+                self.apply_filter()
+                self.update_stats()
+            else:
+                self.update_stats()
         self.app.call_from_thread(update_ui)
 
     def on_input_submitted(self, event: Input.Submitted):
