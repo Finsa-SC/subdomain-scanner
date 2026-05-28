@@ -19,17 +19,14 @@ class SubdomainTable(DataTable):
         super().__init__(*args, **kwargs)
         self.result_mapping = []
         self._is_scanning = False
+        self._pending_rows = []
+        self._columns = DISPLAY_COLUMNS
 
     def on_mount(self):
         self.cursor_type = "row"
         self.zebra_stripes = True
-
-        self.add_column("St", width=4)
-        self.add_column("Subdomain", width=40)
-        self.add_column("IP", width=16)
-        self.add_column("Server", width=12)
-        self.add_column("Status", width=10)
-        self._pending_rows = []
+        for col in self._columns:
+            self.add_column(col['header'], width=col.get('width', 12))
 
     def start_scan_mode(self):
         self._is_scanning = True
