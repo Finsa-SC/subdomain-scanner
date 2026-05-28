@@ -93,7 +93,7 @@ class MainScreen(Screen):
             self.results.append(results)
             self._live_scan_counter += 1
 
-            if self._live_scan_counter % 2 == 0:
+            if self._live_scan_counter % 5 == 0:
                 self.apply_filter()
                 self.update_stats()
             else:

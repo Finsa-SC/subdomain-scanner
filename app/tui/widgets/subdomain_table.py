@@ -20,17 +20,19 @@ class SubdomainTable(DataTable):
         self.clear()
         self.result_mapping = list(results)
 
+        row_to_add = []
         for r in results:
             icon = self.get_status_icon(r)
             subdomain = self.truncate(r.get("subdomain", ""), 38)
             ip = r.get("ip_address", "No IP")
             server = self.truncate(r.get("server", "Unknown"), 10)
-
             h_status = normalize_status(r.get("http", {}).get("status"))
             s_status = normalize_status(r.get("https", {}).get("status"))
             status = f"{h_status}/{s_status}"
+            row_to_add.append((icon, subdomain, ip, server, status))
 
-            self.add_row(icon, subdomain, ip, server, status)
+        for row in row_to_add:
+            self.add_row(*row)
 
         if current_row is not None and current_row < len(self.result_mapping):
             self.move_cursor(row=current_row)
