@@ -5,6 +5,8 @@ class SubdomainTable(DataTable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.result_mapping = []
+        self._updating = False
+
     def on_mount(self):
         self.cursor_type = "row"
         self.zebra_stripes = True
