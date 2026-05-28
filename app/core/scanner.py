@@ -205,8 +205,7 @@ class SubdomainScanner:
             return
 
         log.info(f"Preloading {len(all_cached)} cached result to UI")
-        for result in all_cached.values():
-            self.callback(result)
+        self.callback(list(all_cached.values()), batch=True)
 
     def run(self):
         if self.config.domain_list and self.config.domain_list.strip():
