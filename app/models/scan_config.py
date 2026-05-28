@@ -67,9 +67,18 @@ def _load_raw_toml(file_name: str = "config.toml") -> dict:
 
 _config_data = _load_raw_toml()
 
-TIMEOUT = float(_config_data.get("TIMEOUT", 3.0))
-THREAD = int(_config_data.get("THREAD", 5))
-DELAY = float(_config_data.get("DELAY", 0.0))
-RETRIES = int(_config_data.get("RETRIES", 0))
-PROXY_URL = str(_config_data.get("PROXY_URL", ""))
-DEBUG = _config_data.get("DEBUG", False)
+
+# General
+_general_section = _config_data.get('general', {})
+DEBUG: bool = _general_section.get("DEBUG", False)
+
+# Scan
+_scan_section = _config_data.get('scan', {})
+TIMEOUT: float = float(_scan_section.get("TIMEOUT", 3.0))
+THREAD: int = int(_scan_section.get("THREAD", 5))
+DELAY: float = float(_scan_section.get("DELAY", 0.0))
+RETRIES: int = int(_scan_section.get("RETRIES", 0))
+
+# Network
+_networ_section = _config_data.get('network', {})
+PROXY_URL: str = str(_networ_section.get("PROXY_URL", ""))
