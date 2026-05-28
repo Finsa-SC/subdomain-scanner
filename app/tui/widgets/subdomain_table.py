@@ -13,17 +13,15 @@ _FORMATTERS = {
     "https.redir":  lambda v: format_redirect(v) if v else "-",
 }
 
-def _get_nested(data: dict, key: str, fallback: str = "") -> str:
+def _get_nested(data: dict, key: str):
     parts = key.split(".")
     val = data
 
     for part in parts:
         if not isinstance(val, dict):
-            return fallback
-        val = val.get(part, fallback)
-    if val is None or val == fallback:
-        return fallback
-    return str(val)
+            return None
+        val = val.get(part)
+    return val
 
 class SubdomainTable(DataTable):
     def __init__(self, *args, **kwargs):
