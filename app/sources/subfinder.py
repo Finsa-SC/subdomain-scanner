@@ -12,17 +12,19 @@ def fetch_subfinder(domain: str):
     try:
         cmd = ["subfinder", "-d", domain, "-all", "-silent"]
 
-        process = subprocess.run(
+        process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        if process.returncode == 0 and process.stdout:
-            for lines in process.stdout:
-                sub = lines.strip().lower()
+        if process.stdout:
+            for line in process.stdout:
+                sub = line.strip().lower()
                 if sub:
                     yield sub
+
+        process.wait()
 
     except Exception as e:
         log.error(f"Unexpected error in subfinder module: {e}")
