@@ -18,7 +18,10 @@ log = get_logger("fullscreen")
 def _get_status_value(status_field) -> str:
     if hasattr(status_field, "value"):
         return status_field.value
-    return str(status_field)
+    s = str(status_field)
+    if "." in s and s.startswith("Status"):
+        return s.split(".")[1].lower()
+    return s
 
 class FullscreenDetail(Screen):
     BINDINGS = [
@@ -139,7 +142,18 @@ class FullscreenDetail(Screen):
                 d = pr_info["data"]
 
                 total_urls = d.get("total_urls", 0)
+                stored_urls = d.get('stored_urls', 0)
+                skipped_urls = d.get('skipped_urls', 0)
+                skip_bd = d.get('skip_breakdown', {})
+
                 pr_table.add_row("Total URLs", f"[#00E0FF]{total_urls}[/] found")
+                pr_table.add_row(
+                    "Stored / Skipped",
+                    f"[#73DACA]{stored_urls} kept[/]  [#565F89]· {skipped_urls} skipped "
+                    f"({skip_bd.get('static_asset', 0)} static  "
+                    f"{skip_bd.get('external_noise', 0)} noise  "
+                    f"{skip_bd.get('uncategorized', 0)} other)[/]"
+                )
 
                 # All extracted URLs
                 all_urls = d.get("urls", [])
@@ -433,28 +447,23 @@ class FullscreenDetail(Screen):
     @work(thread=True)
     def action_deep_scan(self):
         from analysis import run_deep_scan
+        from utils import format_subdomain, save_result_to_cache
 
         def on_module_done(key, states):
-            from utils import format_subdomain
-
             self.app.call_from_thread(self._refresh_detail)
 
             subdomain = self.result.get("subdomain", "")
             root = format_subdomain(subdomain)
-            domain_root = f"{root.domain}{root.suffix}"
-            cached_data = load_result_from_cache(domain_root)
-            if subdomain in cached_data:
-                cached_result = cached_data[subdomain]
-                if "deep_scan" in cached_result:
-                    self.result['deep_scan'] = cached_result['deep_scan']
+            domain_root = f"{root.domain}.{root.suffix}"
 
+            save_result_to_cache(domain_root, subdomain, self.result)
             self.app.call_from_thread(self._refresh_detail)
 
             if key == 'tech_version':
                 self._merge_deep_tech_to_protocols()
                 self.app.call_from_thread(self._refresh_detail)
-        self.notify("Starting Deep Scan...", title="Deep Scanning")
 
+        self.notify("Starting Deep Scan...", title="Deep Scanning")
         run_deep_scan(self.result, on_module_done)
 
     def _merge_deep_tech_to_protocols(self):

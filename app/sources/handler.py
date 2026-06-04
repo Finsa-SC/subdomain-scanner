@@ -1,4 +1,4 @@
-from sources import hackertarget, crtsh, alienvault, rapiddns
+from sources import hackertarget, crtsh, alienvault, rapiddns, subfinder
 from utils import load_result_from_cache, get_logger, format_subdomain
 
 log = get_logger("Source Handler")
@@ -10,7 +10,8 @@ def get_subdomain(domain: str, use_all: bool = False, selected_source: str = Non
         "hackertarget": hackertarget.fetch_hackertarget,
         "crtsh": crtsh.fetch_crtsh,
         "alienvault": alienvault.fetch_alienvault,
-        "rapiddns": rapiddns.fetch_rapiddns
+        "rapiddns": rapiddns.fetch_rapiddns,
+        "subfinder": subfinder.fetch_subfinder
     }
 
     if isinstance(selected_source, str):

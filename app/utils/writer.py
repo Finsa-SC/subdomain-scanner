@@ -1,4 +1,4 @@
-import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading, os
+import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading
 from pathlib import Path
 
 from models import PROXY_IPS, DEBUG
@@ -7,6 +7,15 @@ from .logger import get_logger
 log = get_logger("writer")
 def check_results_dir():
     Path("results").mkdir(parents=True, exist_ok=True)
+
+_cache_locks: dict[str, threading.Lock] = {}
+_cache_locks_meta = threading.Lock()
+
+def _get_cache_lock(domain: str) -> threading.Lock:
+    with _cache_locks_meta:
+        if domain not in _cache_locks:
+            _cache_locks[domain] = threading.Lock()
+        return _cache_locks[domain]
 
 def is_proxy(ip: str):
     if not ip or ip == "No IP":
@@ -177,24 +186,28 @@ def load_result_from_cache(domain: str) -> dict:
 
 def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
-    try:
-        result = load_result_from_cache(domain)
-        result[subdomain] = results
-        with open(cache_file, 'w') as file:
-            json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
-    except Exception as e:
-        log.error(f"Failed to save result to cache: {e}")
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            result = load_result_from_cache(domain)
+            result[subdomain] = results
+            with open(cache_file, 'w') as file:
+                json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
+        except Exception as e:
+            log.error(f"Failed to save result to cache: {e}")
 
 def update_result_in_cache(domain: str, subdomain: str, update: dict):
     cache_file = get_cache_file(domain)
-    try:
-        results = load_result_from_cache(domain)
-        if subdomain in results:
-            results[subdomain].update(update)
-            with open(cache_file, 'w') as file:
-                json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
-    except Exception as e:
-        log.error(f"Failed to update cache: {e}")
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            results = load_result_from_cache(domain)
+            if subdomain in results:
+                results[subdomain].update(update)
+                with open(cache_file, 'w') as file:
+                    json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
+        except Exception as e:
+            log.error(f"Failed to update cache: {e}")
 
 def get_cache_age_hour(domain: str) -> float | None:
     cache_file = get_cache_file(domain)

@@ -58,8 +58,12 @@ else:
 def _load_raw_toml(file_name: str = "config.toml") -> dict:
     current_dir = Path(__file__).parent
     base_dir = current_dir.parents[1]
+
     file_path = base_dir / file_name
-    if not Path(file_path).exists():
+    if not file_path.exists():
+        file_path = base_dir / "config.example.toml"
+
+    if not file_path.exists():
         return {}
 
     with open(file_path, 'rb') as file:
@@ -80,5 +84,18 @@ DELAY: float = float(_scan_section.get("delay", 0.0))
 RETRIES: int = int(_scan_section.get("retries", 0))
 
 # Network
-_networ_sectionk = _config_data.get('network', {})
-PROXY_URL: str = str(_networ_sectionk.get("proxy_url", ""))
+_networ_section = _config_data.get('network', {})
+PROXY_URL: str = str(_networ_section.get("proxy_url", ""))
+
+# Display
+_display_section = _config_data.get('display', {})
+DEFAULT_COLUMNS = [
+    {"header": "St",        "key": "icon",        "width": 4},
+    {"header": "Subdomain", "key": "subdomain",   "width": 40},
+    {"header": "IP",        "key": "ip_address",  "width": 16},
+    {"header": "Server",    "key": "http.server", "width": 12},
+    {"header": "Status",    "key": "http.status", "width": 10},
+]
+
+DISPLAY_COLUMNS: list[dict] = _display_section.get("columns", DEFAULT_COLUMNS)
+BATCH_SIZE: int = int(_display_section.get('batch_size', 5))

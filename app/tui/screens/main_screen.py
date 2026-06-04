@@ -92,7 +92,7 @@ class MainScreen(Screen):
                 from utils import load_result_from_cache, format_subdomain
 
                 root = format_subdomain(subdomain)
-                domain_root = f"{root.domain}{root.suffix}"
+                domain_root = f"{root.domain}.{root.suffix}"
 
                 cached_data = load_result_from_cache(domain_root)
                 if subdomain in cached_data:
