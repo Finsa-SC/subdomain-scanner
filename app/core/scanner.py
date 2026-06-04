@@ -204,8 +204,15 @@ class SubdomainScanner:
         if age is None or age > 2.0:
             return
 
-        log.info(f"Preloading {len(all_cached)} cached result to UI")
-        self.callback(list(all_cached.values()), batch=True)
+        all_results = list(all_cached.values())
+        live_results = [result for result in all_results if not result.get("dead")]
+
+        log.info(
+            f"Preloading {len(live_results)} cached result to UI "
+            f"({len(all_results) - len(live_results)} dead hosts skipped)"
+        )
+
+        self.callback(all_results, batch=True)
 
     def run(self):
         if self.config.domain_list and self.config.domain_list.strip():

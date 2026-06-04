@@ -197,6 +197,7 @@ def save_result_to_cache(domain: str, subdomain: str, results: dict):
             "subdomain": results.get("subdomain"),
             "ip_address": results.get("ip_address"),
             "is_live": False,
+            "dead": True,
             "server": "Unknown",
             "http": {
                 "status": "CONN_ERR"

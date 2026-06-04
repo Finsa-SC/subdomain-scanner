@@ -83,7 +83,16 @@ class MainScreen(Screen):
 
             if batch:
                 self.results.extend(results)
-                self.apply_filter()
+                live = [r for r in results if not r.get("dead")]
+                filter_input = self.query_one("#filter-input", Input)
+                query = filter_input.value.strip()
+
+                if query:
+                    self.filtered_results.extend(self.parser.parse(query, live))
+                else:
+                    self.filtered_results.extend(live)
+
+                table.update_data(self.filtered_results)
                 self.update_stats()
                 return
 
