@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from utils import get_logger
+
+log = get_logger("Scan Config")
 
 @dataclass
 class ScanConfig:
@@ -61,6 +64,7 @@ def _load_raw_toml(file_name: str = "config.toml") -> dict:
 
     file_path = base_dir / file_name
     if not file_path.exists():
+        log.warning("Missing config.toml, use config.example.toml instead")
         file_path = base_dir / "config.example.toml"
 
     if not file_path.exists():
