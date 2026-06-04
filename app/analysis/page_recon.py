@@ -55,6 +55,21 @@ INTERESTING_PATHS = [
     r'\.env', r'\.git', r'\.sql', r'\.bak',
 ]
 
+SKIP_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico', '.bmp', '.avif', '.tiff',
+    '.css', '.woff', '.woff2', '.ttf', '.eot', '.otf',
+    '.xml', '.txt', '.pdf', '.zip', '.gz', '.map',
+    '.mp4', '.mp3', '.avi', '.mov', '.webm',
+}
+
+SKIP_DOMAINS = {
+    'fonts.googleapis.com', 'fonts.gstatic.com', 'gmpg.org',
+    'gravatar.com', 'wp.com', 'wordpress.com', 'w3.org',
+    'schema.org', 'ogp.me', 'google-analytics.com',
+    'googletagmanager.com', 'doubleclick.net', 'facebook.net',
+    'connect.facebook.net', 'platform.twitter.com', 'cdnjs.cloudflare.com',
+}
+
 def _extract_urls(body: str, base_url: str) -> list[dict]:
     from urllib.parse import urljoin, urlparse
 
