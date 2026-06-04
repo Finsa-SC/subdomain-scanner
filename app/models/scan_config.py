@@ -99,3 +99,7 @@ DEFAULT_COLUMNS = [
 
 DISPLAY_COLUMNS: list[dict] = _display_section.get("columns", DEFAULT_COLUMNS)
 BATCH_SIZE: int = int(_display_section.get('batch_size', 5))
+
+# Source
+_source_section = _config_data.get('source', {})
+DEFAULT_SOURCE = _source_section.get("default_source", ["hackertarget"])

@@ -1,24 +1,27 @@
-[general]
+[general]                   # General ======================================
 debug = false
 
-[scan]
+[scan]                      # Scan =========================================
 timeout = 3.0
 thread = 5
 delay = 0.0
 retry = 0
 
-[network]
+[network]                   # Network ======================================
 proxy_url = ""
 
-[display]
+[display]                   # Display ======================================
 columns = [
     { header = "St",        key = "icon",                    width = 4  },
     { header = "Subdomain", key = "subdomain",               width = 40 },
     { header = "IP",        key = "ip_address",              width = 16 },
     { header = "Server",    key = "http.server",             width = 12 },
-    { header = "Status",    key = "http.status",             width = 10  },
+    { header = "Status",    key = "https.status",             width = 10  },
 ]
 
 # Number of subdomains to buffer before triggering a UI render update.
 # Higher values save CPU; lower values provide real-time updates.
 batch_size = 5
+
+[source]                   # Source ======================================
+default_source = ["hackertarget", "rapiddns"]
