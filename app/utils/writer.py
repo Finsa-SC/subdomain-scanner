@@ -1,4 +1,4 @@
-import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading, os
+import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading
 from pathlib import Path
 
 from models import PROXY_IPS, DEBUG
@@ -7,6 +7,15 @@ from .logger import get_logger
 log = get_logger("writer")
 def check_results_dir():
     Path("results").mkdir(parents=True, exist_ok=True)
+
+_cache_locks: dict[str, threading.Lock] = {}
+_cache_locks_meta = threading.Lock()
+
+def _get_cache_lock(domain: str) -> threading.Lock:
+    with _cache_locks_meta:
+        if domain not in _cache_locks:
+            _cache_locks[domain] = threading.Lock()
+        return _cache_locks[domain]
 
 def is_proxy(ip: str):
     if not ip or ip == "No IP":
