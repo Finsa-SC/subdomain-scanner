@@ -156,9 +156,11 @@ class MainScreen(Screen):
             total=len(self.results),
             filtered=len(self.filtered_results),
             live=sum(1 for r in self.results if r.get("is_live")),
-            misconfigured=sum(1 for r in self.results if
-                           r.get('http', {}).get('status') in misconfigured_codes or
-                           r.get('https', {}).get('status') in misconfigured_codes),
+            misconfigured=sum(
+                1 for r in self.results if
+                r.get('http', {}).get('status') in misconfigured_codes or
+                r.get('https', {}).get('status') in misconfigured_codes
+            ),
             honeypots=sum(1 for r in self.results if r.get("is_honeypot")),
             wildcard=sum(1 for r in self.results if r.get('wildcard'))
         )
@@ -255,7 +257,7 @@ class MainScreen(Screen):
             '-L', '--live',
             '-A', '--available',
             '-w', '--no-wildcard',
-            '--honeypot'    
+            '--honeypot'
         }
 
         value_flags_to_purge = {
