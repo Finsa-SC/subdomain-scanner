@@ -18,7 +18,10 @@ log = get_logger("fullscreen")
 def _get_status_value(status_field) -> str:
     if hasattr(status_field, "value"):
         return status_field.value
-    return str(status_field)
+    s = str(status_field)
+    if "." in s and s.startswith("Status"):
+        return s.split(".")[1].lower()
+    return s
 
 class FullscreenDetail(Screen):
     BINDINGS = [
