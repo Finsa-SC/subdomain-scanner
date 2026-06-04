@@ -1,16 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from utils import get_logger, update_result_in_cache, format_subdomain
-from enum import Enum
 
 log = get_logger("deep_scan")
 
-class StatusAction(Enum):
+class StatusAction:
     PENDING = "pending"
     RUNNING = "running"
     DONE = "done"
     ERROR = "error"
-
 
 def _run_favicon(result: dict, *args) -> dict:
     from utils import fetch_favicon
