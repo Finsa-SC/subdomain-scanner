@@ -70,7 +70,7 @@ SKIP_DOMAINS = {
     'connect.facebook.net', 'platform.twitter.com', 'cdnjs.cloudflare.com',
 }
 
-def _extract_urls(body: str, base_url: str) -> list[dict]:
+def _extract_urls(body: str, base_url: str) -> tuple[list[dict], dict]:
     from urllib.parse import urljoin, urlparse
 
     base_parsed = urlparse(base_url)
@@ -95,24 +95,44 @@ def _extract_urls(body: str, base_url: str) -> list[dict]:
 
                 if parsed.scheme not in ("http", "https"):
                     continue
+                if full_url in found or full_url in seen_skipped:
+                    continue
 
-                path = parsed.path.lower()
+
+                path_clean = parsed.path.lower().split("?")[0]
+                filename = path_clean.rsplit('/', 1)[-1]
+                ext = ('.' + filename.rsplit('.', 1)[-1]) if filename else ''
+                if ext in SKIP_EXTENSIONS:
+                    seen_skipped.add(full_url)
+                    skip_stats['static_asset'] += 1
+                    continue
+
+                if parsed.netloc in SKIP_DOMAINS:
+                    seen_skipped.add(full_url)
+                    skip_stats['external_noise'] += 1
+                    continue
+
                 is_internal = parsed.netloc == base_domain or not parsed.netloc
+                category = _categories_path(parsed.path.lower()) if is_internal else 'external'
 
-                category = 'external'
-                if is_internal:
-                    category = _categories_path(path)
+                if not is_internal and category == 'skip':
+                    seen_skipped.add(full_url)
+                    skip_stats['external_noise'] += 1
+                    continue
 
-                if full_url not in found:
-                    found[full_url] = {
-                        "url": full_url,
-                        "path": parsed.path,
-                        "category": category,
-                        "internal": is_internal
-                    }
+                if is_internal and category == 'skip':
+                    seen_skipped.add(full_url)
+                    skip_stats['uncategorized'] += 1
+                    continue
+                found[full_url] = {
+                    "url": full_url,
+                    "path": parsed.path,
+                    "category": category,
+                    "internal": is_internal
+                }
             except:
                 continue
-    return list(found.values())
+    return list(found.values()), skip_stats
 
 def _categories_path(path: str) -> str:
     path = path.lower()
