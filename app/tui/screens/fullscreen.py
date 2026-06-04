@@ -142,7 +142,18 @@ class FullscreenDetail(Screen):
                 d = pr_info["data"]
 
                 total_urls = d.get("total_urls", 0)
+                stored_urls = d.get('stored_urls', 0)
+                skipped_urls = d.get('skipped_urls', 0)
+                skip_bd = d.get('skip_breakdown', {})
+
                 pr_table.add_row("Total URLs", f"[#00E0FF]{total_urls}[/] found")
+                pr_table.add_row(
+                    "Stored / Skipped",
+                    f"[#73DACA]{stored_urls} kept[/]  [#565F89]· {skipped_urls} skipped "
+                    f"({skip_bd.get('static_asset', 0)} static  "
+                    f"{skip_bd.get('external_noise', 0)} noise  "
+                    f"{skip_bd.get('uncategorized', 0)} other)[/]"
+                )
 
                 # All extracted URLs
                 all_urls = d.get("urls", [])
