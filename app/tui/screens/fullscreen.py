@@ -443,7 +443,7 @@ class FullscreenDetail(Screen):
 
             subdomain = self.result.get("subdomain", "")
             root = format_subdomain(subdomain)
-            domain_root = f"{root.domain}{root.suffix}"
+            domain_root = f"{root.domain}.{root.suffix}"
 
             save_result_to_cache(domain_root, subdomain, self.result)
             self.app.call_from_thread(self._refresh_detail)
