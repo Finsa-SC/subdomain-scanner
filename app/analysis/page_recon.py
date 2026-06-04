@@ -229,6 +229,13 @@ def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, b
         "admin": {"detected": False, "paths": []},
         "body_fetched": False,
         "total_urls": 0,
+        "stored_urls": 0,
+        "skipped_urls": 0,
+        "skip_breakdown": {
+            "static_asset": 0,
+            "external_noise": 0,
+            "uncategorized": 0,
+        },
         "js_credentials": {
             "js_scanned": [],
             "js_skipped": [],
