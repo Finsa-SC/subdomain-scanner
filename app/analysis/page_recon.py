@@ -215,7 +215,7 @@ def _filter_interesting(urls: list[dict]) -> list[dict]:
 
     for cat in priority_order:
         for url in urls:
-            if url.get('category') == cat and u['url'] not in seen:
+            if url.get('category') == cat and url['url'] not in seen:
                 result.append(url)
                 seen.add(url['url'])
     return result
