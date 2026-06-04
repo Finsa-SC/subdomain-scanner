@@ -446,6 +446,14 @@ class FullscreenDetail(Screen):
 
     @work(thread=True)
     def action_deep_scan(self):
+        if not self.result.get("is_live"):
+            self.notify(
+                "Cannot deep scan an offline target!",
+                title="Deep Scan Banned",
+                severity="warning"
+            )
+            return
+
         from analysis import run_deep_scan
         from utils import format_subdomain, save_result_to_cache
 

@@ -198,12 +198,13 @@ def save_result_to_cache(domain: str, subdomain: str, results: dict):
             "ip_address": results.get("ip_address"),
             "is_live": False,
             "dead": True,
-            "server": "Unknown",
             "http": {
-                "status": "CONN_ERR"
+                "status": "CONN_ERR",
+                "server": "Unknown",
             },
             "https": {
-                "status": "CONN_ERR"
+                "status": "CONN_ERR",
+                "server": "Unknown",
             }
         }
         data_to_save = slim
