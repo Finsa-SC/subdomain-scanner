@@ -249,9 +249,14 @@ def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, b
 
     out["body_fetched"] = True
 
-    urls = _extract_urls(shared_body, base_url)
+    urls, skip_stats = _extract_urls(shared_body, base_url)
+    total_skipped = sum(skip_stats.values())
+
     out["urls"] = urls
-    out["total_urls"] = len(urls)
+    out["total_urls"] = len(urls) + total_skipped
+    out["stored_urls"] = len(urls)
+    out["skipped_urls"] = total_skipped
+    out["skip_breakdown"] = skip_stats
     out["interesting"] = _filter_interesting(urls)
     out["login"] = _detect_login(shared_body, urls)
     out["register"] = _detect_register(shared_body, urls)
