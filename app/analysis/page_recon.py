@@ -75,8 +75,13 @@ def _extract_urls(body: str, base_url: str) -> list[dict]:
 
     base_parsed = urlparse(base_url)
     base_domain = base_parsed.netloc
-
     found = {}
+    seen_skipped = set()
+    skip_stats = {
+        "static_asset": 0,
+        "external_noise": 0,
+        "uncategorized": 0,
+    }
 
     for pattern in URL_PATTERNS:
         for match in re.finditer(pattern, body, re.IGNORECASE):
