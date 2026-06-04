@@ -1,6 +1,7 @@
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import utils
 from utils import get_logger
 from models import DEBUG
 
@@ -208,16 +209,16 @@ def _detect_admin(body: str, urls: list[dict]) -> dict:
     }
 
 def _filter_interesting(urls: list[dict]) -> list[dict]:
-    interesting = []
-    for entry in urls:
-        if not entry.get("internal"):
-            continue
-        path = entry.get("path", "").lower()
-        for pattern in INTERESTING_PATHS:
-            if re.search(pattern, path):
-                interesting.append(entry)
-                break
-    return interesting
+    priority_order = ['sensitive', 'admin', 'auth', 'api', 'file', 'register']
+    result = []
+    seen = set()
+
+    for cat in priority_order:
+        for url in urls:
+            if url.get('category') == cat and u['url'] not in seen:
+                result.append(url)
+                seen.add(url['url'])
+    return result
 
 def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, base_url: str = None) -> dict:
     out = {
