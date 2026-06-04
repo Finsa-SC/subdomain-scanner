@@ -266,10 +266,9 @@ def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, b
     if DEBUG:
         log.debug(
             f"{result.get('subdomain')}: page_recon → "
-            f"{len(urls)} urls, "
-            f"login={out['login']['detected']}, "
-            f"register={out['register']['detected']}, "
-            f"admin={out['admin']['detected']}"
+            f"total={out['total_urls']} stored={out['stored_urls']} skipped={out['skipped_urls']} "
+            f"breakdown={skip_stats} "
+            f"login={out['login']['detected']} admin={out['admin']['detected']}"
         )
 
     return out
