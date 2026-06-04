@@ -187,10 +187,26 @@ def load_result_from_cache(domain: str) -> dict:
 def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
     lock = _get_cache_lock(domain)
+
+    h_status = results.get("http", {}).get("status")
+    s_status = results.get("https", {}).get("status")
+    has_any_status = isinstance(h_status, int) or isinstance(s_status, int)
+
+    if not has_any_status:
+        slim = {
+            "subdomain": results.get("subdomain"),
+            "ip_address": results.get("ip_address"),
+            "is_live": False,
+            "dead": True,
+        }
+        data_to_save = slim
+    else:
+        data_to_save = results
+
     with lock:
         try:
             result = load_result_from_cache(domain)
-            result[subdomain] = results
+            result[subdomain] = data_to_save
             with open(cache_file, 'w') as file:
                 json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
         except Exception as e:
