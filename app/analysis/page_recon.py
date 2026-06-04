@@ -112,19 +112,19 @@ def _extract_urls(body: str, base_url: str) -> list[dict]:
 def _categories_path(path: str) -> str:
     path = path.lower()
     categories = {
-        "api": [r"/api/", r"/v\d+/", r"/graphql", r"/rest/"],
-        "auth": [r"/login", r"/signin", r"/logout", r"/auth", r"/oauth"],
+        "api": [r"/api/", r"/v\d+/", r"/graphql", r"/rest/", r"/ajax"],
+        "auth": [r"/login", r"/signin", r"/logout", r"/auth", r"/oauth", r"/sso"],
         "register": [r"/register", r"/signup", r"/create.?account"],
-        "admin": [r"/admin", r"/dashboard", r"/panel", r"/manage", r"/cp/"],
+        "admin": [r"/admin", r"/dashboard", r"/panel", r"/manage", r"/cp/", r"/wp-admin"],
         "file": [r"/upload", r"/download", r"/file", r"\.php$", r"\.asp", r"\.jsp"],
-        "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug"],
+        "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug", r"/setup", r"/install", r"xmlrpc"],
     }
 
     for cat, pattern in categories.items():
         for p in pattern:
             if re.search(p, path):
                 return cat
-    return "page"
+    return "skip"
 
 def _detect_login(body: str, urls: list[dict]) -> dict:
     signals_found = []
