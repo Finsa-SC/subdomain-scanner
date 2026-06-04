@@ -198,14 +198,16 @@ def save_result_to_cache(domain: str, subdomain: str, results: dict):
 
 def update_result_in_cache(domain: str, subdomain: str, update: dict):
     cache_file = get_cache_file(domain)
-    try:
-        results = load_result_from_cache(domain)
-        if subdomain in results:
-            results[subdomain].update(update)
-            with open(cache_file, 'w') as file:
-                json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
-    except Exception as e:
-        log.error(f"Failed to update cache: {e}")
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            results = load_result_from_cache(domain)
+            if subdomain in results:
+                results[subdomain].update(update)
+                with open(cache_file, 'w') as file:
+                    json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
+        except Exception as e:
+            log.error(f"Failed to update cache: {e}")
 
 def get_cache_age_hour(domain: str) -> float | None:
     cache_file = get_cache_file(domain)
