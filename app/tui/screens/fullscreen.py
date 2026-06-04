@@ -438,6 +438,10 @@ class FullscreenDetail(Screen):
         self.app.call_from_thread(self._refresh_detail)
 
     def action_scan_port(self):
+        if not self.result.get("is_live"):
+            self.notify("Target is offline!", title="Port Scan Cancelled", severity="warning")
+            return
+
         def handle_input(value):
             if not value:
                 return
