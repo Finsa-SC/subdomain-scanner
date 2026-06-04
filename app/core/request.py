@@ -33,6 +33,8 @@ def _do_request(
             return None
         try:
             timeout = base_timeout + retry_count
+            app_state.increment_request()
+
             if PROXY_URL:
                 proxies = {
                     "http": PROXY_URL,
