@@ -58,8 +58,12 @@ else:
 def _load_raw_toml(file_name: str = "config.toml") -> dict:
     current_dir = Path(__file__).parent
     base_dir = current_dir.parents[1]
+
     file_path = base_dir / file_name
-    if not Path(file_path).exists():
+    if not file_path.exists():
+        file_path = base_dir / "config.example.toml"
+
+    if not file_path.exists():
         return {}
 
     with open(file_path, 'rb') as file:
