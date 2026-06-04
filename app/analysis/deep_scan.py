@@ -66,7 +66,7 @@ def run_deep_scan(
     subdomain = result.get("subdomain", "")
 
     root = format_subdomain(subdomain)
-    domain_root = f"{root.domain}{root.suffix}"
+    domain_root = f"{root.domain}.{root.suffix}"
 
     https_status = result.get('https', {}).get('status')
     base_url = f"https://{subdomain}" if https_status in (200, 301, 302, 307, 308) else f"http://{subdomain}"
