@@ -12,11 +12,12 @@ proxy_url = ""
 
 [display]                   # Display ======================================
 columns = [
-    { header = "St",        key = "icon",                    width = 4  },
-    { header = "Subdomain", key = "subdomain",               width = 40 },
-    { header = "IP",        key = "ip_address",              width = 16 },
-    { header = "Server",    key = "http.server",             width = 12 },
-    { header = "Status",    key = "https.status",             width = 10  },
+    { header = "St",            key = "icon",                    width = 4  },
+    { header = "Subdomain",     key = "subdomain",               width = 40 },
+    { header = "IP",            key = "ip_address",              width = 16 },
+    { header = "Server",        key = "http.server",             width = 12 },
+    { header = "HttpStatus",    key = "http.status",             width = 10  },
+    { header = "HttpsStatus",   key = "https.status",            width = 10  },
 ]
 
 # Number of subdomains to buffer before triggering a UI render update.

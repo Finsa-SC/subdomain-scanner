@@ -42,7 +42,7 @@ class FilterParser:
                 for target in targets:
                     target = target.strip()
                     if target == 'live':
-                        if h_status == 200 or s_status == 200 or (h_status in redirect and s_status in redirect):
+                        if h_status == 200 or s_status == 200 or h_status in redirect or s_status in redirect:
                             matched = True
                     elif target == 'forbidden':
                         if h_status in forbidden or s_status in forbidden:
