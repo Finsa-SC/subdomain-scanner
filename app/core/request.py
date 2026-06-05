@@ -63,14 +63,22 @@ def _do_request(
                 "TIMED OUT",
                 "TIMEOUT",
                 "CONNECTION RESET",
-                "FAILED TO CONNECT",
-                "EOF",
-                "NETWORK",
-                "TLSV1 ALERT INTERNAL ERROR",
                 "RECV FAILURE",
                 "EMPTY REPLY",
             ]
+
+            fatal = [
+                "FAILED TO CONNECT",
+                "COULD NOT RESOLVE",
+                "NETWORK IS UNREACHABLE",
+                "NO ROUTE TO HOST",
+                "EOF",
+                "TLSV1 ALERT INTERNAL ERROR",
+            ]
+
             if 'SSL' in err or 'CERTIFICATE' in err:
+                raise e
+            if any(x in err for x in fatal):
                 raise e
             if any(x in err for x in transient):
                 if retry_count < retries:
