@@ -1,5 +1,5 @@
 from models import set_config, TIMEOUT, THREAD, DELAY, RETRIES
-from utils import parse_port
+from utils import parse_port, editor
 from models.scan_config import ScanConfig
 from pathlib import Path
 import os, sys, argparse, tempfile, shutil
@@ -95,7 +95,7 @@ def main():
     parser.add_argument("--log", action="store_true", help="Show log")
     parser.add_argument("-V", "--version", action="version", version=f"subv {VERSION}")
 
-    #purge
+    #Action Flags
     if "--purge" in sys.argv:
         target = Path("results")
         shutil.rmtree(target, ignore_errors=True)
@@ -114,6 +114,15 @@ def main():
                 os.system('tail -f logs/latest.log')
         except KeyboardInterrupt:
             print('\t[C] Exit log viewer.')
+        sys.exit(0)
+    elif '--edit-config' in sys.argv:
+        from utils import editor
+        target = Path("config.toml")
+        if not target.exists():
+            print("[x] No config environtment found!")
+        else:
+            editor.open_in_editor(target)
+
         sys.exit(0)
 
     args = parser.parse_args()

@@ -438,6 +438,10 @@ class FullscreenDetail(Screen):
         self.app.call_from_thread(self._refresh_detail)
 
     def action_scan_port(self):
+        if not self.result.get("is_live"):
+            self.notify("Target is offline!", title="Port Scan Cancelled", severity="warning")
+            return
+
         def handle_input(value):
             if not value:
                 return
@@ -446,6 +450,14 @@ class FullscreenDetail(Screen):
 
     @work(thread=True)
     def action_deep_scan(self):
+        if not self.result.get("is_live"):
+            self.notify(
+                "Cannot deep scan an offline target!",
+                title="Deep Scan Banned",
+                severity="warning"
+            )
+            return
+
         from analysis import run_deep_scan
         from utils import format_subdomain, save_result_to_cache
 

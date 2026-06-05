@@ -1,5 +1,6 @@
 from sources import hackertarget, crtsh, alienvault, rapiddns, subfinder
 from utils import load_result_from_cache, get_logger, format_subdomain
+from models import DEFAULT_SOURCE
 
 log = get_logger("Source Handler")
 
@@ -16,7 +17,7 @@ def get_subdomain(domain: str, use_all: bool = False, selected_source: str = Non
 
     if isinstance(selected_source, str):
         selected_source: list[str] = [selected_source]
-    to_run = source_map.keys() if use_all else (selected_source or ["hackertarget"])
+    to_run = source_map.keys() if use_all else (selected_source or DEFAULT_SOURCE)
 
     cached_subdomains = set()
     if not fresh:

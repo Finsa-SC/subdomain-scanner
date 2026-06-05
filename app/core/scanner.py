@@ -35,7 +35,7 @@ class SubdomainScanner:
     def __exit__(self, exc_type, exc_val, exc_tb):
         log.info(f"Scanner session ended at: {datetime.now()} for {self.domain_root}")
         self.count_time.end()
-        log.info(f"Scanned in {self.count_time.total} seconds")
+        log.info(f"Scanned in {self.count_time.total} seconds, total request sended: {app_state.total_request}")
 
         if exc_type is KeyboardInterrupt:
             log.warning(f"Scan interupted by user for {self.domain_root}")
@@ -153,8 +153,23 @@ class SubdomainScanner:
             if DEBUG:
                 log.debug(f"Resume Skip: {sub}")
 
+    def _get_wildcard_baseline(self):
+        from utils.writer import save_wildcard_baseline, load_wildcard_baseline
+        cached = load_wildcard_baseline(self.domain_root)
+        if cached is not None:
+            if DEBUG: log.debug("Using cached wildcard baseline")
+            return cached
+        baseline = check_wildcard(self.domain_root)
+        save_wildcard_baseline(self.domain_root, baseline)
+        return baseline
+
     def _run_scan(self):
-        wildcard_baseline = check_wildcard(self.domain_root)
+        firsh_sub = self._next_unseen_sub()
+        if firsh_sub is None:
+            if DEBUG: log.info("All subdomains already scanned, skipping wildcard check")
+            return
+
+        wildcard_baseline = self._get_wildcard_baseline()
         console = Console()
         console.print()
 
@@ -162,7 +177,9 @@ class SubdomainScanner:
             app_state.executor = ex
             futures = {}
 
-            slots_to_fill = self.config.thread * 4
+            futures[ex.submit(validate_subdomain, firsh_sub, wildcard_baseline)] = firsh_sub
+
+            slots_to_fill = self.config.thread * 4 - 1
             while slots_to_fill > 0:
                 sub = self._next_unseen_sub()
                 if not sub:
@@ -204,8 +221,15 @@ class SubdomainScanner:
         if age is None or age > 2.0:
             return
 
-        log.info(f"Preloading {len(all_cached)} cached result to UI")
-        self.callback(list(all_cached.values()), batch=True)
+        all_results = [v for k, v in all_cached.items() if not k.startswith("__")]
+        live_results = [result for result in all_results if not result.get("dead")]
+
+        log.info(
+            f"Preloading {len(live_results)} cached result to UI "
+            f"({len(all_results) - len(live_results)} dead hosts skipped)"
+        )
+
+        self.callback(all_results, batch=True)
 
     def run(self):
         if self.config.domain_list and self.config.domain_list.strip():
