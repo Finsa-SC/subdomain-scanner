@@ -156,15 +156,20 @@ class SubdomainScanner:
     def _get_wildcard_baseline(self):
         from utils.writer import save_wildcard_baseline, load_wildcard_baseline
         cached = load_wildcard_baseline(self.domain_root)
-        if cached is not None and DEBUG:
-            log.debug("Using cached wildcard baseline")
+        if cached is not None:
+            if DEBUG: log.debug("Using cached wildcard baseline")
             return cached
         baseline = check_wildcard(self.domain_root)
         save_wildcard_baseline(self.domain_root, baseline)
         return baseline
 
     def _run_scan(self):
-        wildcard_baseline = check_wildcard(self.domain_root)
+        firsh_sub = self._next_unseen_sub()
+        if firsh_sub is None:
+            if DEBUG: log.info("All subdomains already scanned, skipping wildcard check")
+            return
+
+        wildcard_baseline = self._get_wildcard_baseline()
         console = Console()
         console.print()
 
@@ -172,7 +177,9 @@ class SubdomainScanner:
             app_state.executor = ex
             futures = {}
 
-            slots_to_fill = self.config.thread * 4
+            futures[ex.submit(validate_subdomain, firsh_sub, wildcard_baseline)] = firsh_sub
+
+            slots_to_fill = self.config.thread * 4 - 1
             while slots_to_fill > 0:
                 sub = self._next_unseen_sub()
                 if not sub:
