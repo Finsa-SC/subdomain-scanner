@@ -101,6 +101,22 @@ def validate_subdomain(sub, wildcard_baseline):
         except socket.gaierror:
             ip_address = "No IP"
 
+        if ip_address == "No IP":
+            data = {
+                "subdomain": sub,
+                "ip_address": "No IP",
+                "is_live": False,
+                "dead": True,
+                "http": {
+                    "status": "CONN_ERR",
+                    "server": "Unknown",
+                },
+                "https": {
+                    "status": "CONN_ERR",
+                    "server": "Unknown",
+                }
+            }
+            return False, "No IP", data
         custom_dns = config.dns
 
         http_res, http_err = send_subdomain_request("http", sub, config.timeout, custom_dns, return_error_token=True)
