@@ -204,7 +204,7 @@ class SubdomainScanner:
         if age is None or age > 2.0:
             return
 
-        all_results = list(all_cached.values())
+        all_results = [v for k, v in all_cached.items() if not k.startswith("__")]
         live_results = [result for result in all_results if not result.get("dead")]
 
         log.info(
