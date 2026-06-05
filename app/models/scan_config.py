@@ -55,20 +55,20 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-#Use in editor.py
-variables_path = ""
-
 def _load_raw_toml(file_name: str = "config.toml") -> dict:
+    import shutil
+
     current_dir = Path(__file__).parent
     base_dir = current_dir.parents[1]
 
     file_path = base_dir / file_name
-    if not file_path.exists():
-        file_path = base_dir / "config.example.toml"
+    example_path = base_dir / "config.example.toml"
+
+    if not file_path.exists() and example_path.exists():
+        shutil.copy(example_path, file_path)
 
     if not file_path.exists():
         return {}
-    variables_path = file_path
 
     with open(file_path, 'rb') as file:
         return tomllib.load(file)
