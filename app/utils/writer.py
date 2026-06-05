@@ -184,6 +184,18 @@ def load_result_from_cache(domain: str) -> dict:
             log.error(f"Failed to read cache file: {e}")
     return {}
 
+def save_wildcard_baseline(domain: str, baseline: dict):
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            result = load_result_from_cache(domain)
+            result["__wildcard_baseline__"] = baseline
+            cache_file = get_cache_file(domain)
+            with open(cache_file, 'w') as file:
+                json.dump(result, file, indent=2)
+        except Exception as e:
+            log.error(f"Failed to save wildcard baseline: {e}")
+
 def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
     lock = _get_cache_lock(domain)
