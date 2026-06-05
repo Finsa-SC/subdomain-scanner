@@ -1,11 +1,11 @@
-import re, os
-from dotenv import load_dotenv
+import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import utils
 from utils import get_logger
+from models import DEBUG
 
-load_dotenv()
 log = get_logger("Page Recon")
-DEBUG = os.getenv("DEBUG", "false") == "true"
 
 URL_PATTERNS = [
     r'href=["\']([^"\'#][^"\']*)["\']',
@@ -56,32 +56,33 @@ INTERESTING_PATHS = [
     r'\.env', r'\.git', r'\.sql', r'\.bak',
 ]
 
-def _fetch_body(result: dict, timeout: float) -> str | None:
-    from core import send_request
+SKIP_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico', '.bmp', '.avif', '.tiff',
+    '.css', '.woff', '.woff2', '.ttf', '.eot', '.otf',
+    '.xml', '.txt', '.pdf', '.zip', '.gz', '.map',
+    '.mp4', '.mp3', '.avi', '.mov', '.webm',
+}
 
-    subdomain = result.get("subdomain", "")
-    https_status = result.get("https", {}).get("status")
+SKIP_DOMAINS = {
+    'fonts.googleapis.com', 'fonts.gstatic.com', 'gmpg.org',
+    'gravatar.com', 'wp.com', 'wordpress.com', 'w3.org',
+    'schema.org', 'ogp.me', 'google-analytics.com',
+    'googletagmanager.com', 'doubleclick.net', 'facebook.net',
+    'connect.facebook.net', 'platform.twitter.com', 'cdnjs.cloudflare.com',
+}
 
-    url = f"https://{subdomain}" if https_status in (200, 301, 302, 307, 308) else f"http://{subdomain}"
-    res = send_request(
-        url=url,
-        method="GET",
-        timeout=timeout,
-        allow_redirects=True
-    )
-
-    if res and res.status_code == 200 and res.content:
-        res.encoding = res.charset_encoding or "utf-8"
-        return res.text, url
-    return None, None
-
-def _extract_urls(body: str, base_url: str) -> list[dict]:
+def _extract_urls(body: str, base_url: str) -> tuple[list[dict], dict]:
     from urllib.parse import urljoin, urlparse
 
     base_parsed = urlparse(base_url)
     base_domain = base_parsed.netloc
-
     found = {}
+    seen_skipped = set()
+    skip_stats = {
+        "static_asset": 0,
+        "external_noise": 0,
+        "uncategorized": 0,
+    }
 
     for pattern in URL_PATTERNS:
         for match in re.finditer(pattern, body, re.IGNORECASE):
@@ -95,41 +96,61 @@ def _extract_urls(body: str, base_url: str) -> list[dict]:
 
                 if parsed.scheme not in ("http", "https"):
                     continue
+                if full_url in found or full_url in seen_skipped:
+                    continue
 
-                path = parsed.path.lower()
+
+                path_clean = parsed.path.lower().split("?")[0]
+                filename = path_clean.rsplit('/', 1)[-1]
+                ext = ('.' + filename.rsplit('.', 1)[-1]) if filename else ''
+                if ext in SKIP_EXTENSIONS:
+                    seen_skipped.add(full_url)
+                    skip_stats['static_asset'] += 1
+                    continue
+
+                if parsed.netloc in SKIP_DOMAINS:
+                    seen_skipped.add(full_url)
+                    skip_stats['external_noise'] += 1
+                    continue
+
                 is_internal = parsed.netloc == base_domain or not parsed.netloc
+                category = _categories_path(parsed.path.lower()) if is_internal else 'external'
 
-                category = 'external'
-                if is_internal:
-                    category = _categories_path(path)
+                if not is_internal and category == 'skip':
+                    seen_skipped.add(full_url)
+                    skip_stats['external_noise'] += 1
+                    continue
 
-                if full_url not in found:
-                    found[full_url] = {
-                        "url": full_url,
-                        "path": parsed.path,
-                        "category": category,
-                        "internal": is_internal
-                    }
+                if is_internal and category == 'skip':
+                    seen_skipped.add(full_url)
+                    skip_stats['uncategorized'] += 1
+                    continue
+                found[full_url] = {
+                    "url": full_url,
+                    "path": parsed.path,
+                    "category": category,
+                    "internal": is_internal
+                }
             except:
                 continue
-    return list(found.values())
+    return list(found.values()), skip_stats
 
 def _categories_path(path: str) -> str:
     path = path.lower()
     categories = {
-        "api": [r"/api/", r"/v\d+/", r"/graphql", r"/rest/"],
-        "auth": [r"/login", r"/signin", r"/logout", r"/auth", r"/oauth"],
+        "api": [r"/api/", r"/v\d+/", r"/graphql", r"/rest/", r"/ajax"],
+        "auth": [r"/login", r"/signin", r"/logout", r"/auth", r"/oauth", r"/sso"],
         "register": [r"/register", r"/signup", r"/create.?account"],
-        "admin": [r"/admin", r"/dashboard", r"/panel", r"/manage", r"/cp/"],
+        "admin": [r"/admin", r"/dashboard", r"/panel", r"/manage", r"/cp/", r"/wp-admin"],
         "file": [r"/upload", r"/download", r"/file", r"\.php$", r"\.asp", r"\.jsp"],
-        "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug"],
+        "sensitive": [r"\.env", r"\.git", r"\.sql", r"\.bak", r"/config", r"/backup", r"/debug", r"/setup", r"/install", r"xmlrpc"],
     }
 
     for cat, pattern in categories.items():
         for p in pattern:
             if re.search(p, path):
                 return cat
-    return "page"
+    return "skip"
 
 def _detect_login(body: str, urls: list[dict]) -> dict:
     signals_found = []
@@ -188,18 +209,18 @@ def _detect_admin(body: str, urls: list[dict]) -> dict:
     }
 
 def _filter_interesting(urls: list[dict]) -> list[dict]:
-    interesting = []
-    for entry in urls:
-        if not entry.get("internal"):
-            continue
-        path = entry.get("path", "").lower()
-        for pattern in INTERESTING_PATHS:
-            if re.search(pattern, path):
-                interesting.append(entry)
-                break
-    return interesting
+    priority_order = ['sensitive', 'admin', 'auth', 'api', 'file', 'register']
+    result = []
+    seen = set()
 
-def run_page_recon(result: dict, timeout: float) -> dict:
+    for cat in priority_order:
+        for url in urls:
+            if url.get('category') == cat and url['url'] not in seen:
+                result.append(url)
+                seen.add(url['url'])
+    return result
+
+def run_page_recon(result: dict, timeout: float= 3.0, shared_body: str = None, base_url: str = None) -> dict:
     out = {
         "urls": [],
         "interesting": [],
@@ -208,6 +229,13 @@ def run_page_recon(result: dict, timeout: float) -> dict:
         "admin": {"detected": False, "paths": []},
         "body_fetched": False,
         "total_urls": 0,
+        "stored_urls": 0,
+        "skipped_urls": 0,
+        "skip_breakdown": {
+            "static_asset": 0,
+            "external_noise": 0,
+            "uncategorized": 0,
+        },
         "js_credentials": {
             "js_scanned": [],
             "js_skipped": [],
@@ -216,28 +244,31 @@ def run_page_recon(result: dict, timeout: float) -> dict:
         },
     }
 
-    body, base_url = _fetch_body(result, timeout)
-    if not body:
+    if not shared_body:
         return out
 
     out["body_fetched"] = True
 
-    urls = _extract_urls(body, base_url)
+    urls, skip_stats = _extract_urls(shared_body, base_url)
+    total_skipped = sum(skip_stats.values())
+
     out["urls"] = urls
-    out["total_urls"] = len(urls)
+    out["total_urls"] = len(urls) + total_skipped
+    out["stored_urls"] = len(urls)
+    out["skipped_urls"] = total_skipped
+    out["skip_breakdown"] = skip_stats
     out["interesting"] = _filter_interesting(urls)
-    out["login"] = _detect_login(body, urls)
-    out["register"] = _detect_register(body, urls)
-    out["admin"] = _detect_admin(body, urls)
+    out["login"] = _detect_login(shared_body, urls)
+    out["register"] = _detect_register(shared_body, urls)
+    out["admin"] = _detect_admin(shared_body, urls)
     out["js_credentials"] = _scan_js_credentials(urls, timeout)
 
     if DEBUG:
         log.debug(
             f"{result.get('subdomain')}: page_recon → "
-            f"{len(urls)} urls, "
-            f"login={out['login']['detected']}, "
-            f"register={out['register']['detected']}, "
-            f"admin={out['admin']['detected']}"
+            f"total={out['total_urls']} stored={out['stored_urls']} skipped={out['skipped_urls']} "
+            f"breakdown={skip_stats} "
+            f"login={out['login']['detected']} admin={out['admin']['detected']}"
         )
 
     return out
@@ -337,6 +368,7 @@ def _get_line_hint(content: str, pos: int) -> int:
 def _scan_js_credentials(urls: list[dict], timeout: float) -> dict:
     out = {
         "js_scanned": [],
+        "js_skipped": [],
         "findings": [],
         "total_found": 0
     }
@@ -350,19 +382,33 @@ def _scan_js_credentials(urls: list[dict], timeout: float) -> dict:
         url = entry.get('url', '')
         if _is_important_js(url):
             out['js_scanned'].append(url)
+        else:
+            out['js_skipped'].append(url)
 
-    for js_url in out['js_scanned'][:10]:
-        content = _fetch_js(js_url, timeout)
-        if not content:
-            continue
-        hits = _scan_js_for_credentials(content, js_url)
-        out['findings'].extend(hits)
+    target_to_scan = out['js_scanned'][:10]
+
+    if target_to_scan:
+        with ThreadPoolExecutor(max_workers=len(target_to_scan)) as executor:
+            future_to_url = {
+                executor.submit(_fetch_js, js_url, timeout): js_url
+                for js_url in target_to_scan
+            }
+
+            for future in as_completed(future_to_url):
+                js_url = future_to_url[future]
+                try:
+                    content = future.result()
+                    if content:
+                        hits = _scan_js_for_credentials(content, js_url)
+                        out['findings'].extend(hits)
+                except Exception as e:
+                    log.error(f"Failed to fetch/scan JS {js_url}: {e}")
 
     out['total_found'] = len(out['findings'])
 
     if DEBUG:
         log.debug(
-            f"js_credential: scanned={len(out['js_scanned'])}, "
+            f"js_credential: scanned={len(target_to_scan)}, "
             f"skipped={len(out['js_skipped'])}, "
             f"findings={out['total_found']}"
         )

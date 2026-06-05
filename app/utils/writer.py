@@ -1,15 +1,21 @@
-import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading, os
+import hashlib, ipaddress, time, subprocess, platform, shutil, json, threading
 from pathlib import Path
-from dotenv import load_dotenv
 
-from models import PROXY_IPS
+from models import PROXY_IPS, DEBUG
 from .logger import get_logger
 
-load_dotenv()
-DEBUG = os.getenv("debug", "false") == 'true'
 log = get_logger("writer")
 def check_results_dir():
     Path("results").mkdir(parents=True, exist_ok=True)
+
+_cache_locks: dict[str, threading.Lock] = {}
+_cache_locks_meta = threading.Lock()
+
+def _get_cache_lock(domain: str) -> threading.Lock:
+    with _cache_locks_meta:
+        if domain not in _cache_locks:
+            _cache_locks[domain] = threading.Lock()
+        return _cache_locks[domain]
 
 def is_proxy(ip: str):
     if not ip or ip == "No IP":
@@ -128,7 +134,6 @@ def clean_item(item):
     for proto in ("http", "https"):
         if proto in item:
             item[proto] = {k: v for k, v in item[proto].items() if k in keep_fields}
-    item.pop("signing", None)
     item.pop("timestamp", None)
     item.pop("honeypot_findings", None)
     return item
@@ -179,26 +184,70 @@ def load_result_from_cache(domain: str) -> dict:
             log.error(f"Failed to read cache file: {e}")
     return {}
 
+def save_wildcard_baseline(domain: str, baseline: dict):
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            result = load_result_from_cache(domain)
+            result["__wildcard_baseline__"] = baseline
+            cache_file = get_cache_file(domain)
+            with open(cache_file, 'w') as file:
+                json.dump(result, file, indent=2)
+        except Exception as e:
+            log.error(f"Failed to save wildcard baseline: {e}")
+
+def load_wildcard_baseline(domain: str) -> dict|None:
+    cache = load_result_from_cache(domain)
+    return cache.get("__wildcard_baseline__")
+
 def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
-    try:
-        result = load_result_from_cache(domain)
-        result[subdomain] = results
-        with open(cache_file, 'w') as file:
-            json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
-    except Exception as e:
-        log.error(f"Failed to save result to cache: {e}")
+    lock = _get_cache_lock(domain)
+
+    h_status = results.get("http", {}).get("status")
+    s_status = results.get("https", {}).get("status")
+    has_any_status = isinstance(h_status, int) or isinstance(s_status, int)
+
+    if not has_any_status:
+        slim = {
+            "subdomain": results.get("subdomain"),
+            "ip_address": results.get("ip_address"),
+            "is_live": False,
+            "dead": True,
+            "http": {
+                "status": "CONN_ERR",
+                "server": "Unknown",
+            },
+            "https": {
+                "status": "CONN_ERR",
+                "server": "Unknown",
+            }
+        }
+        data_to_save = slim
+    else:
+        data_to_save = results
+
+    with lock:
+        try:
+            result = load_result_from_cache(domain)
+            result[subdomain] = data_to_save
+            with open(cache_file, 'w') as file:
+                json.dump(result, file, indent=2, default=lambda o: dict(o) if hasattr(o, "items") else str(o))
+        except Exception as e:
+            log.error(f"Failed to save result to cache: {e}")
 
 def update_result_in_cache(domain: str, subdomain: str, update: dict):
     cache_file = get_cache_file(domain)
-    try:
-        results = load_result_from_cache(domain)
-        if subdomain in results:
-            results[subdomain].update(update)
-            with open(cache_file, 'w') as file:
-                json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
-    except Exception as e:
-        log.error(f"Failed to update cache: {e}")
+    lock = _get_cache_lock(domain)
+    with lock:
+        try:
+            results = load_result_from_cache(domain)
+            if subdomain in results:
+                results[subdomain].update(update)
+                with open(cache_file, 'w') as file:
+                    json.dump(results, file, indent=2, default=lambda o: dict(o) if hasattr(o, 'items') else str(o))
+        except Exception as e:
+            log.error(f"Failed to update cache: {e}")
 
 def get_cache_age_hour(domain: str) -> float | None:
     cache_file = get_cache_file(domain)

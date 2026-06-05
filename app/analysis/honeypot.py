@@ -43,7 +43,6 @@ HONEYPOT_SIZE_RANGE = [
     "cms_trap"
 ]
 
-
 HONEYPOT_SERVERS = [
     "glastopf",
     "wordpot",
@@ -67,35 +66,39 @@ SUSPICIOUS_HEADER_ORDERS = [
 ]
 
 SIGNAL_WEIGHTS = {
-    "hash_match": 0.95,
-    "honeypot_header": 0.92,
-    "server_sig_match": 0.82,
-    "obsolete_version": 0.65,
-    "identical_body_both_proto": 0.50,
-    "header_order": 0.52,
-    "clickbait_title": 0.48,
+    #Weak
     "subdomain_name": 0.10,
-    "missing_title": 0.14,
-    "tls_ja3_suspicious": 0.35,
-    "response_timing": 0.25,
-    "fake_cookie": 0.40,
-    "body_entropy": 0.30,
-    "cdn_mismatch": 0.28,
+    "missing_title": 0.12,
+    "cdn_mismatch": 0.15,
+    "response_timing": 0.18,
+    "body_entropy": 0.18,
+    "identical_body_both_proto": 0.25,
 
+    #Strong
+    "tls_ja3_suspicious": 0.35,
+    "fake_cookie": 0.40,
+    "clickbait_title": 0.48,
+    "header_order": 0.52,
+    "obsolete_version": 0.65,
+
+    #Critical
+    "server_sig_match": 0.82,
+    "honeypot_header": 0.92,
+    "hash_match": 0.95,
 }
 
 SIGNAL_TIER = {
     "subdomain_name": "weak",
     "missing_title": "weak",
+    "identical_body_both_proto": "weak",
+    "body_entropy": "weak",
+    "cdn_mismatch": "weak",
+    "response_timing": "weak",
     "obsolete_version": "strong",
     "header_order": "strong",
     "clickbait_title": "strong",
-    "identical_body_both_proto": "strong",
     "tls_ja3_suspicious": "strong",
-    "response_timing": "strong",
     "fake_cookie": "strong",
-    "body_entropy": "strong",
-    "cdn_mismatch": "strong",
     "hash_match": "critical",
     "honeypot_header": "critical",
     "server_sig_match": "critical",
@@ -357,10 +360,10 @@ class HoneypotAnalyzer:
         s_200 = s_status == 200
 
         # Identical body
-        if h_200 and s_200 and h_hash and h_hash == s_hash and not self._is_reverse_proxy():
+        if self._check_identical_body(h_200, s_200, h_hash, s_hash, h_size):
             self._add_signal(
                 "identical_body_both_proto",
-                "Identical body on HTTP and HTTPS (no redirect) — abnormal for real servers")
+                "Identical small body on HTTP and HTTPS (no redirect) — abnormal for real servers")
 
         # CDN mismatch detection
         h_server = self.http.get("server", "").lower()
@@ -368,6 +371,9 @@ class HoneypotAnalyzer:
 
         h_is_cdn = any(cdn in h_server for cdn in KNOWN_PROXY_SERVERS)
         s_is_cdn = any(cdn in s_server for cdn in KNOWN_PROXY_SERVERS)
+
+        h_title = self.http.get("title", "").strip().lower()
+        s_title = self.https.get("title", "").strip().lower()
 
         if h_is_cdn != s_is_cdn:
             self._add_signal(
@@ -379,15 +385,11 @@ class HoneypotAnalyzer:
                 "missing_title",
                 "HTTP 200 with empty body — server returning nothing")
 
-        # Body entropy deviation
-        if h_hash and h_hash != EMPTY_HASH:
-            if h_size and isinstance(h_size, int) and h_size < 500 and h_200:
-                self._add_signal(
-                    "body_entropy",
-                    "Suspiciously small static response body (<500B)")
-
-        h_title = self.http.get("title", "").strip().lower()
-        s_title = self.https.get("title", "").strip().lower()
+        # Suspicious minimal response
+        if self._check_suspicious_minimal_response(h_status, h_hash, h_size, h_title):
+            self._add_signal(
+                "body_entropy",
+                "Suspiciously minimal response: tiny body with no title")
 
         # Empty 200 response
         if h_200 and not h_title:
@@ -403,16 +405,54 @@ class HoneypotAnalyzer:
         s_latency = self.https.get("latency")
 
         # Timing anomaly
+        is_suspicious, timing_note = self._check_timing_anomaly(h_latency, s_latency, h_200)
+        if is_suspicious:
+            note = timing_note if isinstance(timing_note, str) else f"Unnaturally fast/slow response time: {timing_note}ms"
+            self._add_signal("response_timing", note)
+
+    @staticmethod
+    def _check_suspicious_minimal_response(h_status, h_hash, h_size, h_title) -> bool:
+        if not (h_status == 200 and h_hash and h_hash != EMPTY_HASH):
+            return False
+
+        flags = [
+            h_size is not None and h_size < 200,
+            not h_title or h_title in ("", "-"),
+            h_size is not None and h_size == 0,
+        ]
+        return sum(flags) >= 2
+
+    def _check_identical_body(self, h_200, s_200, h_hash, s_hash, h_size) -> bool:
+        if not (h_200 and s_200 and h_hash and h_hash == s_hash):
+            return False
+        if self._is_reverse_proxy():
+            return False
+        if h_size and h_size > 1_000:
+            return False
+        return True
+
+    @staticmethod
+    def _check_timing_anomaly(h_latency, s_latency, h_200):
+        if not h_200:
+            return False, None
+
+        suspicious_latency = []
         for latency in (h_latency, s_latency):
-            if latency and isinstance(latency, int):
-                if latency < 30 and h_200:
-                    self._add_signal(
-                        "response_timing",
-                        f"Unnaturally fast response time: {latency}ms (likely honeypot)")
-                elif latency > 15000:
-                    self._add_signal(
-                        "response_timing",
-                        f"Suspiciously slow response time: {latency}ms (artificial delay)")
+            if not latency or not isinstance(latency, int):
+                continue
+            if latency < 10:
+                suspicious_latency.append(latency)
+            elif latency > 20_000:
+                suspicious_latency.append(latency)
+
+        if not suspicious_latency:
+            return False, None
+
+        if h_latency and s_latency and abs(h_latency - s_latency) < 5:
+            return True, f"Suspiously consistent latency: {h_latency}ms/{s_latency}ms"
+
+        return True, suspicious_latency[0]
+
 
     def run_all(self):
         self.check_server()
