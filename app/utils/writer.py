@@ -196,6 +196,10 @@ def save_wildcard_baseline(domain: str, baseline: dict):
         except Exception as e:
             log.error(f"Failed to save wildcard baseline: {e}")
 
+def load_wildcard_baseline(domain: str) -> dict|None:
+    cache = load_result_from_cache(domain)
+    return cache.get("__wildcard_baseline__")
+
 def save_result_to_cache(domain: str, subdomain: str, results: dict):
     cache_file = get_cache_file(domain)
     lock = _get_cache_lock(domain)
