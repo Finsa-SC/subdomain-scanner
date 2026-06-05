@@ -153,6 +153,16 @@ class SubdomainScanner:
             if DEBUG:
                 log.debug(f"Resume Skip: {sub}")
 
+    def _get_wildcard_baseline(self):
+        from utils.writer import save_wildcard_baseline, load_wildcard_baseline
+        cached = load_wildcard_baseline(self.domain_root)
+        if cached is not None and DEBUG:
+            log.debug("Using cached wildcard baseline")
+            return cached
+        baseline = check_wildcard(self.domain_root)
+        save_wildcard_baseline(self.domain_root, baseline)
+        return baseline
+
     def _run_scan(self):
         wildcard_baseline = check_wildcard(self.domain_root)
         console = Console()
