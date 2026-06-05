@@ -26,3 +26,9 @@ batch_size = 5
 
 [source]                   # Source ======================================
 default_source = ["hackertarget", "rapiddns"]
+
+[environtment]
+##  Text editor
+windows_editor = "notepad.exe"
+darwin_editor = "open -e"
+linux_editor = "nano"

@@ -55,6 +55,9 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
+#Use in editor.py
+variables_path = ""
+
 def _load_raw_toml(file_name: str = "config.toml") -> dict:
     current_dir = Path(__file__).parent
     base_dir = current_dir.parents[1]
@@ -65,6 +68,7 @@ def _load_raw_toml(file_name: str = "config.toml") -> dict:
 
     if not file_path.exists():
         return {}
+    variables_path = file_path
 
     with open(file_path, 'rb') as file:
         return tomllib.load(file)
@@ -102,4 +106,9 @@ BATCH_SIZE: int = int(_display_section.get('batch_size', 5))
 
 # Source
 _source_section = _config_data.get('source', {})
-DEFAULT_SOURCE = _source_section.get("default_source", ["hackertarget"])
+DEFAULT_SOURCE: list[str] = _source_section.get("default_source", ["hackertarget"])
+
+_environtment_section = _config_data.get('environtment', {})
+WINDOWS_EDITOR: str = _environtment_section.get("windows_editor", "code --wait")
+DARWIN_EDITOR: str = _environtment_section.get("darwin_editor", "code --wait")
+LINUX_EDITOR: str = _environtment_section.get("linux_editor", "code --wait")
